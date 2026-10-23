@@ -3,10 +3,14 @@
  * High-speed QR scanning, camera lifecycle, Web Audio sound feedback, atomic verification
  */
 
-import { Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode as Html5QrcodeModule } from 'html5-qrcode';
 import { localDB } from '../firebase-config.js';
 import { getSessionUser } from './auth.js';
 import { getActiveEvent } from './events.js';
+
+function getHtml5QrcodeClass() {
+  return window.Html5Qrcode || Html5QrcodeModule;
+}
 
 let html5QrCode = null;
 let isScanning = false;
@@ -108,7 +112,8 @@ export async function startCameraScanner(elementId, onScanResult, onError) {
 
   try {
     if (!html5QrCode) {
-      html5QrCode = new Html5Qrcode(elementId);
+      const Html5Class = getHtml5QrcodeClass();
+      html5QrCode = new Html5Class(elementId);
     }
 
     const config = {

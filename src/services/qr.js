@@ -3,16 +3,26 @@
  * Generates high-res QR codes, stylish invitation badge canvases, and printable multi-pass PDFs
  */
 
-import QRCode from 'qrcode';
-import { jsPDF } from 'jspdf';
+import QRCodeModule from 'qrcode';
+import { jsPDF as JsPDFModule } from 'jspdf';
 import { getEventById } from './events.js';
+
+function getQRCode() {
+  return window.QRCode || QRCodeModule;
+}
+
+function getJsPDFClass() {
+  if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+  return JsPDFModule;
+}
 
 /**
  * Generate a QR code Data URL (PNG)
  */
 export async function generateQrDataUrl(text, options = {}) {
   try {
-    return await QRCode.toDataURL(text, {
+    const qrLib = getQRCode();
+    return await qrLib.toDataURL(text, {
       width: options.width || 300,
       margin: options.margin || 2,
       color: {
@@ -170,7 +180,8 @@ export async function exportAllInvitationsPdf(guests, event) {
     return;
   }
 
-  const doc = new jsPDF({
+  const PDFConstructor = getJsPDFClass();
+  const doc = new PDFConstructor({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4'

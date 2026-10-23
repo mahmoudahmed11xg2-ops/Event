@@ -3,8 +3,12 @@
  * Uses SheetJS to validate, preview, and batch-import guests
  */
 
-import * as XLSX from 'xlsx';
+import * as XLSXModule from 'xlsx';
 import { addGuest, getGuestsForEvent } from './guests.js';
+
+function getXLSX() {
+  return window.XLSX || XLSXModule;
+}
 
 export function parseSpreadsheetFile(file) {
   return new Promise((resolve, reject) => {
@@ -21,12 +25,13 @@ export function parseSpreadsheetFile(file) {
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const xlsxLib = getXLSX();
+        const workbook = xlsxLib.read(data, { type: 'array' });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         
         // Convert to JSON array of objects
-        const rawRows = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+        const rawRows = xlsxLib.utils.sheet_to_json(worksheet, { defval: '' });
         if (!rawRows || rawRows.length === 0) {
           return reject(new Error('The spreadsheet is empty or has no data rows.'));
         }

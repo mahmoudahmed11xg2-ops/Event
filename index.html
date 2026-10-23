@@ -7,9 +7,27 @@
     <meta name="description" content="Complete event management and secure QR check-in platform with role-based access, attendance tracking, and Excel guest import." />
     <meta property="og:title" content="Event Invitation & QR Check-in System" />
     <meta property="og:description" content="Complete event management and secure QR check-in platform with role-based access, attendance tracking, and Excel guest import." />
-    <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="./src/style.css" />
+    <!-- Native Browser Module Mapping for Standalone GitHub Pages Deployment -->
+    <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
+        "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js",
+        "qrcode": "https://cdn.jsdelivr.net/npm/qrcode@1.5.3/+esm",
+        "jspdf": "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/+esm",
+        "xlsx": "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm",
+        "html5-qrcode": "https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/+esm"
+      }
+    }
+    </script>
+    <!-- Standalone Global CDN Fallbacks -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   </head>
   <body>
     <!-- Top Header -->
@@ -757,6 +775,6 @@
     </div>
 
     <!-- Load Main Vanilla JavaScript Application -->
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="./src/main.js"></script>
   </body>
 </html>
