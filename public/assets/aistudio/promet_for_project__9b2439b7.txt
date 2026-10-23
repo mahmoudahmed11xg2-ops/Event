@@ -1,0 +1,1161 @@
+# FULL PROJECT SPECIFICATION — EVENT INVITATION & QR CHECK-IN MANAGEMENT SYSTEM
+
+## 1. PROJECT OVERVIEW
+
+Build a complete, professional, secure, responsive web application called "Event Management System".
+
+The application will manage event invitations, guest lists, unique QR codes, employee check-in operations, attendance tracking, and administrative reports.
+
+The system must be suitable for real company events, with multiple employees scanning invitations from different devices simultaneously.
+
+The application must be built using ONLY:
+
+- HTML5
+- CSS3
+- Vanilla JavaScript (ES6+)
+- Firebase Authentication
+- Cloud Firestore
+- Firebase Cloud Functions or another appropriate trusted server-side mechanism when required for secure operations
+- GitHub Repository
+- GitHub Pages for website hosting
+
+Do not use React, Vue, Angular, TypeScript, Next.js, or other frontend frameworks.
+
+Do not require a paid service for the initial deployment if a suitable free-tier implementation is possible. Verify current free-tier limitations before choosing Firebase services.
+
+Explain any feature that requires a paid plan or cannot operate securely within the selected free-tier configuration.
+
+The project must be organized, maintainable, documented, secure, and easy for a beginner to understand and modify.
+
+IMPORTANT: Do not generate a superficial demo. Build a complete application with real Firebase integration, functional forms, real database operations, authentication, role-based authorization, QR scanning, and check-in validation.
+
+Do not use fake statistics, mock guests, hardcoded demonstration users, or localStorage as a substitute for the database.
+
+---
+
+## 2. SYSTEM ARCHITECTURE
+
+The system consists of four main components:
+
+1. Frontend website hosted on GitHub Pages.
+2. Firebase Authentication for user sign-in.
+3. Cloud Firestore for guests, events, invitations, and attendance records.
+4. A trusted backend mechanism for sensitive operations, such as invitation validation, one-time check-in, account provisioning, and privileged administrative actions.
+
+The main workflow is:
+
+GitHub Pages Website
+→ Login Page
+→ Firebase Authentication
+→ Verify User Role
+→ Admin Dashboard OR Employee Check-in Page
+
+Admin operations and employee check-in operations must use the same Firestore database.
+
+All devices must receive consistent, current data.
+
+Use an appropriate Firestore listener for live attendance statistics and guest status updates.
+
+Never trust a role, invitation status, or check-in result supplied only by frontend JavaScript.
+
+All security-sensitive operations must be validated by trusted server-side code or another Firebase mechanism with equivalent security guarantees.
+
+Do not expose Firebase Admin SDK credentials, service account keys, private API keys, or other server secrets in frontend files or the GitHub repository.
+
+Firebase client configuration may be present in the frontend when appropriate, but it must be protected by Authentication, Firestore Security Rules, and applicable platform restrictions.
+
+Official references:
+
+Firebase Authentication:
+https://firebase.google.com/docs/auth
+
+Cloud Firestore:
+https://firebase.google.com/docs/firestore
+
+Firestore Security Rules:
+https://firebase.google.com/docs/firestore/security/get-started
+
+Firebase Cloud Functions:
+https://firebase.google.com/docs/functions
+
+GitHub Pages:
+https://docs.github.com/en/pages
+
+---
+
+## 3. USER AUTHENTICATION AND ROLE MANAGEMENT
+
+Create a secure login system.
+
+The login page must contain:
+
+- Email field.
+- Password field.
+- Show/hide password button.
+- Login button.
+- Loading indicator.
+- Clear authentication error messages.
+- Responsive design.
+- Logout functionality.
+
+Do not provide public account registration.
+
+Only an authorized administrator may create employee accounts.
+
+Use Firebase Authentication to manage user credentials.
+
+Store user profile information and roles in Firestore.
+
+Required roles:
+
+### ADMIN
+
+An administrator can:
+
+- View the complete dashboard.
+- Create and manage events.
+- Add, edit, and cancel guest invitations.
+- Import guest lists from Excel.
+- Generate and download QR invitations.
+- View invitation statuses.
+- View check-in history.
+- Create and manage employee accounts.
+- Assign employee roles where applicable.
+- Review rejected check-in attempts.
+- Export reports.
+- Log out.
+
+### EMPLOYEE
+
+An employee can:
+
+- Access the employee check-in interface.
+- Open the device camera.
+- Scan guest QR codes.
+- View the guest information returned by a successful validation.
+- View whether entry was accepted or rejected.
+- See a clear reason when an invitation is invalid or already used.
+- Search for a guest manually if the administrator enables this permission.
+- Log out.
+
+Employees must not access administrative pages or perform unauthorized database operations.
+
+Do not rely only on hiding navigation links or checking a role in local JavaScript.
+
+Enforce permissions through Firestore Security Rules and trusted server-side authorization.
+
+Create employee accounts using a trusted backend or Firebase Admin SDK.
+
+Never create employee accounts by storing passwords in Firestore.
+
+Creating a user account must not accidentally replace the currently authenticated administrator's session.
+
+Use Firebase Authentication's supported account provisioning mechanisms.
+
+If account creation requires a backend deployment or a billing-enabled Firebase configuration, explain the exact requirement and provide the safest practical implementation.
+
+If an employee is disabled or deleted, revoke their application access appropriately.
+
+Create an initial administrator through a documented, secure bootstrap process. Do not hardcode a default administrator email and password in public JavaScript.
+
+---
+
+## 4. ADMIN DASHBOARD
+
+Create a professional administrative dashboard.
+
+The design should include:
+
+- Sidebar navigation.
+- Top navigation bar.
+- Current administrator information.
+- Event selector.
+- Notification area.
+- Main content area.
+- Logout button.
+- Responsive mobile navigation.
+
+Use a clean, modern, professional interface.
+
+Preferred visual style:
+
+- Dark charcoal or black background.
+- Subtle dark-red accent colors.
+- White and light-gray text.
+- Red, green, and amber status indicators.
+- Professional cards and tables.
+- Consistent spacing and typography.
+- Smooth, restrained transitions.
+- Clear buttons and forms.
+- Accessible contrast and keyboard navigation.
+
+Do not use excessive animations, heavy effects, or unnecessary visual clutter.
+
+The interface should work on desktop, tablet, and mobile screens.
+
+### Dashboard Statistics
+
+Display:
+
+- Total registered guests.
+- Total valid invitations.
+- Total checked-in guests.
+- Guests who have not arrived.
+- Cancelled invitations.
+- Attendance percentage.
+- Recent successful check-ins.
+- Recent rejected check-in attempts.
+
+All statistics must be calculated from real Firestore data.
+
+Do not hardcode sample statistics.
+
+The dashboard must update automatically when attendance changes.
+
+For an event:
+
+Attendance percentage = Checked-in guests / Eligible invited guests × 100.
+
+Clearly document whether cancelled invitations are excluded from the eligible guest count.
+
+Show appropriate empty states when no event or guest records exist.
+
+Handle Firestore loading and error states gracefully.
+
+---
+
+## 5. EVENT MANAGEMENT
+
+The system must support multiple events in the future.
+
+Create an Events management interface for administrators.
+
+Each event should contain fields such as:
+
+- Event ID.
+- Event name.
+- Description.
+- Venue.
+- Start date and time.
+- End date and time.
+- Time zone.
+- Event status.
+- Creation timestamp.
+- Created-by administrator.
+- Optional event logo or branding settings.
+
+Possible event statuses:
+
+- Draft.
+- Active.
+- Completed.
+- Cancelled.
+
+Only authorized administrators can create, update, activate, or cancel events.
+
+Employees must operate only on events they are authorized to access.
+
+The employee interface should clearly display the currently active event.
+
+Prevent accidental check-ins against the wrong event.
+
+Every invitation and attendance record must be associated with the correct event.
+
+Do not delete historical attendance records automatically when an event is completed.
+
+---
+
+## 6. GUEST MANAGEMENT
+
+Create a complete Guest Management page.
+
+Administrators must be able to:
+
+- Add a guest.
+- Edit guest information.
+- Cancel an invitation.
+- Search guests.
+- Filter by event.
+- Filter by invitation status.
+- View guest details.
+- View check-in information.
+- Reissue an invitation when necessary.
+- Export guest data when authorized.
+
+Suggested guest fields:
+
+- Guest ID.
+- Event ID.
+- Full name.
+- Company.
+- Email address, optional.
+- Phone number, optional.
+- Invitation token reference.
+- Invitation status.
+- Creation timestamp.
+- Updated timestamp.
+- Created-by administrator.
+- Optional notes.
+- Optional permitted companion count.
+
+Do not expose private guest information to unauthorized employees.
+
+Validate all form inputs.
+
+Normalize email addresses when applicable.
+
+Warn administrators about duplicate guests or duplicate email addresses within the same event.
+
+Do not automatically merge guests solely because their names match.
+
+Require confirmation before cancelling an invitation or performing destructive actions.
+
+Record important administrative actions in an audit log.
+
+Deleting or cancelling a guest must not silently erase historical check-in records.
+
+Use a suitable status model and document the difference between cancellation, deletion, and invitation revocation.
+
+---
+
+## 7. IMPORT GUESTS FROM EXCEL
+
+Create an Import Excel page.
+
+Allow administrators to upload guest lists in .xlsx or .csv format.
+
+Use a maintained JavaScript spreadsheet parsing library, such as SheetJS, if appropriate.
+
+Load third-party libraries from a reputable source and document the selected version.
+
+Expected spreadsheet columns:
+
+- Full Name.
+- Company.
+- Email.
+- Phone, optional.
+- Notes, optional.
+- Companion Limit, optional.
+
+The import process must include:
+
+1. Select file.
+2. Validate file type and size.
+3. Read the spreadsheet.
+4. Detect available columns.
+5. Display a preview of the records.
+6. Validate required fields.
+7. Identify invalid rows.
+8. Identify likely duplicates.
+9. Allow the administrator to cancel the import.
+10. Require confirmation before importing.
+11. Import valid records in controlled batches.
+12. Report successful imports and rejected rows.
+13. Allow downloading an error report.
+
+Use Firestore-compatible batch sizes and handle its documented limits.
+
+Prevent accidental duplicate imports by using a suitable event-scoped import strategy or idempotency mechanism.
+
+Do not silently overwrite existing guests.
+
+Generate invitation tokens securely through a trusted mechanism.
+
+Do not place private service credentials in the browser to simplify imports.
+
+For large guest lists, implement pagination or controlled batching.
+
+---
+
+## 8. QR CODE GENERATION
+
+Generate a unique QR invitation for every guest.
+
+The QR code must contain an opaque, unpredictable invitation token or a secure invitation reference.
+
+Do not encode passwords, private guest information, or authorization claims directly in the QR code.
+
+The token must not be a sequential guest ID or an easily guessed value.
+
+Use cryptographically secure randomness generated in a trusted environment.
+
+Store only an appropriately protected token representation when practical.
+
+The backend must be able to validate the presented token securely.
+
+Every token must be associated with one guest and one event.
+
+Required features:
+
+- Generate QR codes for individual guests.
+- Generate QR codes for imported guests.
+- Download an individual QR code.
+- Generate downloadable invitation images.
+- Generate a printable PDF containing multiple invitations if practical.
+- Include guest name, company, event name, and invitation QR on the invitation design.
+- Allow reissuing an invitation.
+- Revoke the previous token when a replacement is issued.
+- Display the invitation status.
+
+QR codes must not be accepted merely because their contents resemble a valid guest ID.
+
+The backend must verify token validity and invitation status.
+
+Use a maintained QR-generation library and document its source.
+
+Use a camera-compatible QR-scanning library, such as a maintained version of html5-qrcode or another appropriate alternative.
+
+Official reference:
+https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getUserMedia
+
+Camera access normally requires HTTPS or localhost.
+
+Ensure the deployed GitHub Pages website uses HTTPS.
+
+Handle camera permission denial, unsupported browsers, unavailable cameras, and unreadable QR codes.
+
+Provide a clear fallback message when scanning is unavailable.
+
+---
+
+## 9. INVITATION STATUS
+
+Create an Invitation Status page.
+
+Display:
+
+- Guest name.
+- Company.
+- Event.
+- Invitation status.
+- Token issue date.
+- Whether the invitation was checked in.
+- Check-in time when applicable.
+- Cancellation information when applicable.
+
+Required invitation states:
+
+- VALID.
+- CHECKED_IN.
+- CANCELLED.
+- REVOKED.
+
+Document how invitation states transition.
+
+An invitation must not return to VALID automatically after a successful check-in.
+
+A reissued invitation must invalidate its previous token.
+
+Cancelling an invitation must prevent future check-in attempts.
+
+Use server-side validation to determine the final invitation state.
+
+Do not rely on a status value supplied by the browser.
+
+---
+
+## 10. EMPLOYEE CHECK-IN INTERFACE
+
+Create a dedicated employee page.
+
+The interface must be extremely simple because employees will use it while managing a queue at an event entrance.
+
+Suggested layout:
+
+EVENT CHECK-IN
+
+[Open Camera]
+
+[QR Scanner Area]
+
+Result panel:
+
+- Guest name.
+- Company.
+- Event name.
+- Invitation status.
+- Check-in time.
+- Clear result message.
+
+Use large controls and readable text.
+
+### Successful Scan
+
+When an eligible invitation is scanned:
+
+- Validate the token using a trusted backend.
+- Verify that the event is active.
+- Verify that the invitation belongs to the selected event.
+- Verify that the invitation is not cancelled or revoked.
+- Verify that the invitation has not already been used.
+- Record the check-in exactly once.
+- Return the authorized guest details.
+- Display a green success indicator.
+- Show a clear message such as "ENTRY APPROVED".
+- Play an optional short success sound.
+- Prepare the scanner for the next guest.
+
+### Invalid Invitation
+
+If the token is unknown or invalid:
+
+- Do not permit entry.
+- Record the rejected attempt where appropriate.
+- Display a red indicator.
+- Show "INVALID INVITATION".
+
+### Previously Used Invitation
+
+If the invitation has already been used:
+
+- Do not create another successful check-in.
+- Display an amber or red warning.
+- Show "ALREADY CHECKED IN".
+- Display the original check-in time when authorized.
+- Record the duplicate attempt.
+
+### Cancelled or Revoked Invitation
+
+Reject the invitation and display a clear reason.
+
+### Network or Server Error
+
+Never display a success message when the server has not confirmed the check-in.
+
+Show a clear network or verification error.
+
+Do not silently permit entry when verification fails.
+
+Provide an explicit retry option.
+
+### Camera Handling
+
+Request camera permission only after the employee clicks the scan button.
+
+Stop camera streams when scanning is stopped or the user leaves the page.
+
+Avoid accidentally processing the same QR repeatedly.
+
+Provide a manual search fallback if enabled by the administrator.
+
+Do not expose the complete guest database to employee browsers just to make scanning work.
+
+---
+
+## 11. ATOMIC CHECK-IN AND DUPLICATE PREVENTION
+
+This is one of the most important security requirements.
+
+Multiple employees may scan the same QR code at approximately the same time.
+
+The system must guarantee that only one successful check-in is recorded for a single-use invitation.
+
+Implement a trusted server-side check-in operation.
+
+The operation must:
+
+1. Authenticate the employee.
+2. Verify the employee's role and event access.
+3. Validate the invitation token.
+4. Check the event status.
+5. Check the invitation status.
+6. Atomically verify and claim the invitation.
+7. Create the successful check-in record.
+8. Record the employee identity and server timestamp.
+9. Return a structured result.
+
+Use an appropriate Firestore transaction or another mechanism that provides equivalent atomicity.
+
+Do not implement duplicate prevention using only frontend checks, localStorage, disabled buttons, or ordinary non-transactional updates.
+
+Do not allow an employee to mark an invitation as checked in by writing directly to an unrestricted Firestore document.
+
+If a retry occurs after a network timeout, design the operation so that it does not accidentally create a second successful check-in.
+
+Use server-generated timestamps.
+
+The check-in operation must return distinct result codes, such as:
+
+- SUCCESS.
+- INVALID_TOKEN.
+- ALREADY_CHECKED_IN.
+- CANCELLED_INVITATION.
+- EVENT_NOT_ACTIVE.
+- UNAUTHORIZED.
+- TEMPORARY_ERROR.
+
+Document how each result is handled by the frontend.
+
+---
+
+## 12. CHECK-IN HISTORY AND AUDIT LOGGING
+
+Create a Check-in History page for administrators.
+
+Display:
+
+- Guest name or reference.
+- Event name.
+- Result.
+- Rejection reason when applicable.
+- Employee account.
+- Timestamp.
+- Optional entrance or device identifier.
+
+Provide:
+
+- Search.
+- Event filter.
+- Date filter.
+- Result filter.
+- Employee filter.
+- Pagination.
+- CSV export.
+
+Use server-generated timestamps and a consistent time zone strategy.
+
+Store timestamps in a standard format and display them in the selected event's time zone.
+
+Record relevant administrative actions, including:
+
+- Guest creation.
+- Guest updates.
+- Invitation cancellation.
+- Invitation reissue.
+- Event changes.
+- Employee account creation.
+- Role changes.
+- Relevant security-related actions.
+
+Do not log passwords, authentication tokens, or full secret QR tokens.
+
+Separate successful attendance records from rejected-attempt and administrative audit logs.
+
+Do not allow ordinary employees to edit or delete audit records.
+
+Protect the integrity of the records and document retention considerations.
+
+---
+
+## 13. FIRESTORE DATA MODEL
+
+Design a documented Firestore schema.
+
+Suggested collections:
+
+### users
+
+Document ID: Firebase Authentication UID.
+
+Fields:
+
+- displayName.
+- email.
+- role.
+- active.
+- assignedEventIds, if applicable.
+- createdAt.
+- createdBy.
+- updatedAt.
+
+### events
+
+Fields:
+
+- name.
+- description.
+- venue.
+- startAt.
+- endAt.
+- timeZone.
+- status.
+- createdAt.
+- createdBy.
+- updatedAt.
+
+### guests
+
+Fields:
+
+- eventId.
+- fullName.
+- company.
+- email, optional.
+- phone, optional.
+- invitationStatus.
+- currentTokenId or equivalent protected reference.
+- checkedInAt, when applicable.
+- checkedInBy, when applicable.
+- createdAt.
+- updatedAt.
+- createdBy.
+
+### invitationTokens
+
+Use an appropriate protected representation of the token.
+
+Fields may include:
+
+- guestId.
+- eventId.
+- tokenHash or another suitable protected token reference.
+- status.
+- issuedAt.
+- revokedAt.
+- createdBy.
+
+### checkins
+
+Fields:
+
+- eventId.
+- guestId.
+- result.
+- checkedInBy.
+- serverTimestamp.
+- entranceId, optional.
+
+### checkinAttempts
+
+Fields:
+
+- eventId, when known.
+- token reference or a safe token fingerprint.
+- result.
+- rejectionReason.
+- employeeUid, when authenticated.
+- serverTimestamp.
+- entranceId, optional.
+
+### auditLogs
+
+Fields:
+
+- actorUid.
+- action.
+- targetType.
+- targetId.
+- eventId, when applicable.
+- timestamp.
+- sanitized metadata.
+
+Adapt this schema as necessary.
+
+Do not duplicate sensitive information unnecessarily.
+
+Avoid sequential document IDs for security-sensitive invitation tokens.
+
+Document all important fields, relationships, indexes, and data lifecycle rules.
+
+Use pagination rather than loading every guest and every log record at once.
+
+---
+
+## 14. FIRESTORE SECURITY RULES
+
+Create a production-conscious firestore.rules file.
+
+Apply the principle of least privilege.
+
+Requirements:
+
+- Deny unauthenticated access to private guest and attendance data.
+- Do not trust roles supplied by client requests.
+- Restrict employee access to authorized event data.
+- Prevent employees from changing invitation status directly.
+- Prevent employees from editing guest records.
+- Prevent ordinary users from changing their own role to ADMIN.
+- Prevent direct client writes that bypass secure check-in validation.
+- Protect invitation token records.
+- Restrict administrative operations to authorized administrators.
+- Protect audit log integrity.
+- Validate allowed fields and data types for client-accessible writes.
+- Deny unspecified access by default.
+
+Privileged backend operations must perform their own authorization checks because server-side Admin SDK operations bypass Firestore Security Rules.
+
+Do not assume Firestore Security Rules automatically protect trusted server code.
+
+Include tests using the Firebase Emulator Suite or another supported testing approach.
+
+Test both authorized and unauthorized scenarios.
+
+Never deploy permissive development rules such as unrestricted read/write access.
+
+Official reference:
+https://firebase.google.com/docs/firestore/security/rules-conditions
+
+---
+
+## 15. GITHUB PAGES DEPLOYMENT
+
+The public frontend must be deployable to GitHub Pages.
+
+Create a clear repository structure, including:
+
+- HTML pages.
+- CSS stylesheets.
+- JavaScript modules.
+- Static assets.
+- Firebase configuration.
+- Firestore rules.
+- Database indexes configuration where needed.
+- Backend source code in a separate folder.
+- Setup documentation.
+- Deployment instructions.
+- Testing instructions.
+
+Use relative paths where appropriate so that the website works under a GitHub Pages project URL, not only at the root of a domain.
+
+Avoid hardcoded localhost URLs in production code.
+
+Configure the website to use HTTPS.
+
+Explain how to create the GitHub repository, upload the project, enable GitHub Pages, and verify the published site.
+
+Do not claim that GitHub Pages can execute backend functions.
+
+If Cloud Functions or another backend is needed, document how it is deployed separately and how the frontend calls it.
+
+Do not include service account JSON files or private secrets in GitHub.
+
+If environment-specific configuration is required, explain the safe configuration approach for a static frontend and trusted backend.
+
+Remember that values embedded in frontend JavaScript are publicly visible.
+
+---
+
+## 16. USER INTERFACE AND ACCESSIBILITY
+
+Use semantic HTML5.
+
+Use CSS variables for colors, spacing, typography, and shared design settings.
+
+Organize JavaScript into clear modules.
+
+Use accessible labels and keyboard-friendly controls.
+
+Use responsive layouts.
+
+Provide loading indicators and disabled states while operations are in progress.
+
+Show meaningful error messages instead of raw technical errors.
+
+Include confirmation dialogs for destructive actions.
+
+Include empty states, success notifications, and retry actions.
+
+Use appropriate date formatting and consistent event time zones.
+
+Prevent accidental form resubmissions.
+
+Keep employee check-in actions fast and easy to operate.
+
+Support both English and Arabic UI text where practical.
+
+If Arabic is enabled, support RTL layout correctly.
+
+Do not introduce unnecessary frameworks.
+
+Avoid duplicating business logic across multiple files.
+
+---
+
+## 17. ERROR HANDLING AND RELIABILITY
+
+Handle:
+
+- Invalid login credentials.
+- Inactive users.
+- Missing user profiles.
+- Missing or malformed guest data.
+- Firestore permission errors.
+- Network disconnections.
+- QR decoding failures.
+- Invalid invitation tokens.
+- Duplicate invitations.
+- Duplicate check-in attempts.
+- Cancelled events.
+- Cancelled invitations.
+- Expired sessions.
+- Camera permission denial.
+- Unsupported browser APIs.
+- Import failures.
+- Partial spreadsheet imports.
+- Backend timeouts.
+- Concurrent check-ins.
+
+Display user-friendly messages.
+
+Keep sensitive technical information out of public error messages.
+
+Log appropriate diagnostic information without logging credentials or secret tokens.
+
+Never report a successful operation before the trusted backend confirms it.
+
+---
+
+## 18. TESTING PLAN
+
+Create a complete testing checklist.
+
+At minimum, test the following:
+
+1. Administrator login succeeds.
+2. Invalid credentials are rejected.
+3. Employee login succeeds.
+4. Public registration is unavailable.
+5. An employee cannot access administrative operations.
+6. An administrator can create an event.
+7. An administrator can add a guest.
+8. Duplicate guest handling works correctly.
+9. Excel import validates rows and reports errors.
+10. Each guest receives a unique invitation token.
+11. QR codes can be scanned using supported mobile devices.
+12. Valid invitations are accepted.
+13. Invalid invitations are rejected.
+14. Cancelled invitations are rejected.
+15. Previously used invitations are rejected.
+16. Two employees scanning the same invitation simultaneously produce only one successful check-in.
+17. Network failures never create false success messages.
+18. Dashboard statistics reflect real database records.
+19. Check-in history shows the correct event and employee.
+20. Unauthorized Firestore operations are rejected.
+21. Direct URL navigation does not bypass authorization.
+22. The website works from its actual GitHub Pages URL.
+23. The application works on desktop and mobile.
+24. Camera access works over HTTPS.
+25. Event time zones are displayed correctly.
+26. Employee deactivation prevents further authorized access.
+27. Invitation reissue invalidates the previous token.
+28. Historical check-in records remain available according to retention rules.
+
+Use Firebase Emulator Suite when practical.
+
+Document how to run tests and how to verify production behavior safely.
+
+---
+
+## 19. REQUIRED PROJECT DOCUMENTATION
+
+Create a comprehensive README.md containing:
+
+- Project description.
+- Feature list.
+- Technology stack.
+- Folder structure.
+- Firebase project setup.
+- Authentication setup.
+- Firestore database setup.
+- Required indexes.
+- Firestore Security Rules deployment.
+- Backend deployment instructions.
+- GitHub Pages setup.
+- Firebase configuration instructions.
+- Initial administrator provisioning.
+- Employee account creation.
+- Excel import instructions.
+- QR generation instructions.
+- Employee scanning instructions.
+- Security notes.
+- Free-tier limitations.
+- Troubleshooting.
+- Testing checklist.
+- Production launch checklist.
+
+Use official documentation links where appropriate.
+
+Provide commands suitable for Windows PowerShell when commands are necessary.
+
+Explain which commands must be executed in the project directory.
+
+Do not assume that Firebase CLI, Node.js, or other dependencies are already installed.
+
+Explain the prerequisites and how to verify installations.
+
+---
+
+## 20. IMPLEMENTATION WORKFLOW
+
+Work in clearly defined phases.
+
+Do not attempt to skip directly to a large, untested code dump.
+
+### PHASE 1 — REQUIREMENTS AND ARCHITECTURE
+
+- Confirm the architecture.
+- Explain the frontend, authentication, database, and backend responsibilities.
+- Define the folder structure.
+- Define the Firestore data model.
+- Identify features that require trusted server-side execution.
+- Identify free-tier and billing constraints.
+- Explain security decisions.
+
+### PHASE 2 — PROJECT SCAFFOLDING
+
+- Create the complete project folder structure.
+- Create the HTML pages.
+- Create shared CSS files.
+- Create JavaScript modules.
+- Create a README.
+- Ensure relative paths work with GitHub Pages.
+
+### PHASE 3 — FIREBASE SETUP
+
+- Explain how to create the Firebase project.
+- Configure Authentication.
+- Configure Firestore.
+- Configure the backend environment if needed.
+- Create secure initial administrator provisioning.
+- Implement and test Security Rules.
+
+### PHASE 4 — LOGIN AND ROLE-BASED ACCESS
+
+- Implement login.
+- Retrieve the authorized user profile.
+- Redirect administrators and employees to the correct pages.
+- Handle inactive or unauthorized users.
+- Implement logout.
+- Test direct URL access.
+
+### PHASE 5 — ADMIN DASHBOARD
+
+- Build the dashboard layout.
+- Implement real attendance statistics.
+- Implement event management.
+- Implement guest management.
+- Implement account management.
+- Implement search and filters.
+
+### PHASE 6 — EXCEL IMPORT AND QR GENERATION
+
+- Implement spreadsheet validation and preview.
+- Implement controlled imports.
+- Implement secure token generation.
+- Implement QR generation.
+- Implement downloadable invitations.
+- Implement invitation revocation and reissue.
+
+### PHASE 7 — EMPLOYEE CHECK-IN
+
+- Implement the camera interface.
+- Implement QR scanning.
+- Implement secure backend validation.
+- Implement atomic single-use check-in.
+- Implement success and failure states.
+- Implement duplicate-attempt handling.
+
+### PHASE 8 — HISTORY AND REPORTING
+
+- Implement attendance history.
+- Implement audit logging.
+- Implement pagination and filtering.
+- Implement authorized CSV export.
+- Implement live dashboard updates.
+
+### PHASE 9 — TESTING AND DEPLOYMENT
+
+- Run security tests.
+- Run concurrency tests.
+- Verify all user roles.
+- Test the actual deployed GitHub Pages URL.
+- Deploy backend components.
+- Verify camera permissions.
+- Document all deployment steps.
+
+### PHASE 10 — FINAL REVIEW
+
+- Review all files for incomplete code.
+- Remove mock data and placeholder business logic.
+- Check that every visible button performs its intended action.
+- Check all routes and relative paths.
+- Verify Security Rules.
+- Verify backend authorization.
+- Verify duplicate check-in prevention.
+- Provide a final list of completed features and any remaining limitations.
+
+---
+
+## 21. STRICT DEVELOPMENT RULES
+
+Follow these rules throughout development:
+
+1. Use HTML, CSS, and vanilla JavaScript for the frontend.
+2. Use Firebase Authentication for user credentials.
+3. Use Firestore as the central data source.
+4. Use trusted server-side code for sensitive operations.
+5. Never store passwords or privileged credentials in localStorage.
+6. Never treat localStorage as an authorization source.
+7. Never expose service account credentials in frontend code.
+8. Never allow an employee to grant themselves administrative permissions.
+9. Never accept a QR code based only on frontend validation.
+10. Never allow duplicate successful check-ins for a single-use invitation.
+11. Never use unrestricted Firestore Security Rules.
+12. Never use fake statistics or mock guest records in production.
+13. Never silently ignore errors.
+14. Never claim a feature is complete unless it is implemented and tested.
+15. Never invent successful deployment results.
+16. Do not replace one requested file with a completely different architecture without explaining why.
+17. Keep code modular and beginner-friendly.
+18. Provide complete files when asked for complete files.
+19. When fixing a bug, explain the cause and provide the exact files or sections that need to change.
+20. Preserve existing working functionality when modifying the project.
+21. Use current official Firebase and GitHub documentation to verify setup instructions and plan limitations.
+22. Separate development and production configuration.
+23. Use the Firebase Emulator Suite when practical.
+24. Provide a clear step-by-step workflow suitable for a beginner working on Windows.
+25. If a requirement cannot be safely implemented with the selected tools, explain the limitation and propose the smallest appropriate change.
+
+---
+
+## 22. EXPECTED DELIVERABLES
+
+The final project must include:
+
+- A complete GitHub-ready frontend.
+- Admin login and dashboard.
+- Employee login and check-in interface.
+- Role-based authorization.
+- Event management.
+- Guest management.
+- Excel import.
+- QR generation and download.
+- Secure invitation validation.
+- Atomic one-time check-in.
+- Duplicate-use prevention.
+- Real-time attendance statistics.
+- Check-in history.
+- Administrative audit logs.
+- Firestore Security Rules.
+- Backend source code where required.
+- Database indexes configuration where required.
+- Testing instructions.
+- Deployment instructions.
+- A complete README.
+- A final verification checklist.
+
+Deliver working source files, not just screenshots, mockups, pseudocode, or an architectural description.
+
+If the environment supports creating downloadable project files, provide the project as a ZIP archive with the correct directory structure.
+
+If it does not support file creation, provide the files in manageable batches with their exact paths and complete contents.
+
+---
+
+## 23. HOW TO BEGIN
+
+Start with Phase 1.
+
+First, explain the architecture and identify the services that are actually required.
+
+Then provide the exact project folder structure.
+
+Next, explain the Firebase project setup and the distinction between frontend hosting and backend execution.
+
+Identify any feature that requires additional configuration or billing before implementation.
+
+Do not start with a fake dashboard or a mock QR scanner.
+
+Do not ask me to repeat requirements already stated in this specification.
+
+Proceed step by step, clearly explaining what each component does and how I can test it before moving to the next phase.

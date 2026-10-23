@@ -1,0 +1,10 @@
+{
+  "name": "Event Invitation & QR Check-in System",
+  "description": "Complete event management and secure QR check-in platform with role-based access, attendance tracking, and Excel guest import.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

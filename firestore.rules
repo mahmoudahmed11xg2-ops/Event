@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'ADMIN' && getUserData().active == true;
+    }
+    
+    function isEmployee() {
+      return isAuthenticated() && (getUserData().role == 'EMPLOYEE' || getUserData().role == 'ADMIN') && getUserData().active == true;
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      // Users can read their own profile, Admins can read/write all
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Events Collection
+    match /events/{eventId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Guests Collection
+    match /guests/{guestId} {
+      allow read: if isAuthenticated();
+      // Only Admin can create, edit, or cancel guests
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Invitation Tokens (Protected reference)
+    match /invitationTokens/{tokenId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // Checkins Collection (Atomic verified admission records)
+    match /checkins/{checkinId} {
+      allow read: if isAuthenticated();
+      // Employees and Admins can create check-in records during verified admission
+      allow create: if isEmployee() && request.resource.data.result == 'SUCCESS';
+      allow update, delete: if isAdmin();
+    }
+
+    // Checkin Attempts (Auditing failed, duplicate, and invalid scans)
+    match /checkinAttempts/{attemptId} {
+      allow read: if isAdmin();
+      allow create: if isEmployee();
+      allow update, delete: if false; // Immutable audit log
+    }
+
+    // Audit Logs
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAuthenticated();
+      allow update, delete: if false; // Immutable audit trail
+    }
+
+    // Default deny all other unspecified paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
