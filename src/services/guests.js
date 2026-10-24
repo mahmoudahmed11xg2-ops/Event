@@ -2,8 +2,9 @@
  * Guest Management Service
  */
 
-import { localDB, generateSecureToken } from '../firebase-config.js';
+import { localDB, generateSecureToken, getFirebaseInstance } from '../firebase-config.js';
 import { getSessionUser } from './auth.js';
+import { doc, setDoc, updateDoc } from 'firebase/firestore';
 
 export function getGuestsForEvent(eventId, { search = '', status = 'ALL' } = {}) {
   let list = Object.values(localDB.data.guests).filter(g => g.eventId === eventId);
@@ -83,6 +84,17 @@ export function addGuest({ eventId, fullName, company, email, phone, companionLi
   });
 
   localDB.save();
+
+  // Cloud Firestore Sync
+  const { isReal, db } = getFirebaseInstance();
+  if (isReal && db) {
+    try {
+      setDoc(doc(db, 'guests', id), newGuest).catch(e => console.warn('Firestore guest sync error:', e));
+    } catch (e) {
+      console.warn('Firestore guest sync error:', e);
+    }
+  }
+
   return newGuest;
 }
 
@@ -104,6 +116,17 @@ export function updateGuest(id, updates) {
   });
 
   localDB.save();
+
+  // Cloud Firestore Sync
+  const { isReal, db } = getFirebaseInstance();
+  if (isReal && db) {
+    try {
+      updateDoc(doc(db, 'guests', id), updates).catch(e => console.warn('Firestore guest update error:', e));
+    } catch (e) {
+      console.warn('Firestore guest update error:', e);
+    }
+  }
+
   return guest;
 }
 
@@ -126,6 +149,20 @@ export function cancelInvitation(id, reason = 'Administrative cancellation') {
   });
 
   localDB.save();
+
+  // Cloud Firestore Sync
+  const { isReal, db } = getFirebaseInstance();
+  if (isReal && db) {
+    try {
+      updateDoc(doc(db, 'guests', id), {
+        invitationStatus: 'CANCELLED',
+        updatedAt: guest.updatedAt
+      }).catch(e => console.warn('Firestore cancel sync error:', e));
+    } catch (e) {
+      console.warn('Firestore cancel sync error:', e);
+    }
+  }
+
   return guest;
 }
 
@@ -154,6 +191,23 @@ export function reissueInvitation(id) {
   });
 
   localDB.save();
+
+  // Cloud Firestore Sync
+  const { isReal, db } = getFirebaseInstance();
+  if (isReal && db) {
+    try {
+      updateDoc(doc(db, 'guests', id), {
+        token: newToken,
+        invitationStatus: 'VALID',
+        checkedInAt: null,
+        checkedInBy: null,
+        updatedAt: guest.updatedAt
+      }).catch(e => console.warn('Firestore reissue sync error:', e));
+    } catch (e) {
+      console.warn('Firestore reissue sync error:', e);
+    }
+  }
+
   return guest;
 }
 

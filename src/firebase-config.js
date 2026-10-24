@@ -1,7 +1,7 @@
 /**
  * Firebase Real-time Initialization & Firestore Synchronization Engine
+ * Automatically connected to project: event-a5ab1
  * Full real-time synchronization via onSnapshot listeners and atomic runTransaction check-ins.
- * Falls back to local synchronous Firestore simulator when no credentials are configured.
  */
 
 import { initializeApp } from 'firebase/app';
@@ -27,7 +27,17 @@ import {
   orderBy 
 } from 'firebase/firestore';
 
-const STORAGE_KEY_CONFIG = 'ems_firebase_config';
+// User's Real Firebase Project Configuration (Permanently connected)
+export const BUILTIN_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCf9bNTBEIcVzavscQQsgYQcXU5EBBNFB8",
+  authDomain: "event-a5ab1.firebaseapp.com",
+  projectId: "event-a5ab1",
+  storageBucket: "event-a5ab1.firebasestorage.app",
+  messagingSenderId: "655795139486",
+  appId: "1:655795139486:web:9afc881a1afcc9e85f5c8f",
+  measurementId: "G-3DKREPMFE7"
+};
+
 const STORAGE_KEY_LOCAL_DB = 'ems_firestore_mock_db';
 
 let app = null;
@@ -170,30 +180,6 @@ export const DEFAULT_INITIAL_DATA = {
   ]
 };
 
-export function getSavedConfig() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_CONFIG);
-    if (raw) return JSON.parse(raw);
-  } catch (e) {
-    console.error('Error reading saved Firebase config:', e);
-  }
-  return null;
-}
-
-export function saveFirebaseConfig(cfg) {
-  try {
-    localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(cfg));
-    return true;
-  } catch (e) {
-    console.error('Error saving config:', e);
-    return false;
-  }
-}
-
-export function removeFirebaseConfig() {
-  localStorage.removeItem(STORAGE_KEY_CONFIG);
-}
-
 class LocalFirestoreEngine {
   constructor() {
     this.listeners = new Set();
@@ -205,7 +191,7 @@ class LocalFirestoreEngine {
       const stored = localStorage.getItem(STORAGE_KEY_LOCAL_DB);
       if (stored) return JSON.parse(stored);
     } catch (e) {
-      console.warn('Using fresh default data');
+      console.warn('Using default data');
     }
     this.save(DEFAULT_INITIAL_DATA);
     return JSON.parse(JSON.stringify(DEFAULT_INITIAL_DATA));
@@ -479,7 +465,6 @@ export function generateSecureToken() {
 function startCloudFirestoreSync() {
   if (!db) return;
 
-  // Clear existing listeners
   firestoreUnsubscribers.forEach(u => { try { u(); } catch(e){} });
   firestoreUnsubscribers = [];
 
@@ -520,30 +505,28 @@ function startCloudFirestoreSync() {
     }, (err) => console.warn('Users sync error:', err));
     firestoreUnsubscribers.push(unsubUsers);
 
-    console.log('Real-time Cloud Firestore synchronization online.');
+    console.log('Real-time Cloud Firestore synchronization online for project:', BUILTIN_FIREBASE_CONFIG.projectId);
   } catch (e) {
     console.error('Failed to attach Cloud Firestore listeners:', e);
   }
 }
 
+// Automatically initialize real Firebase
 export function initFirebase() {
-  const cfg = getSavedConfig();
-  if (cfg && cfg.apiKey && cfg.projectId) {
-    try {
-      app = initializeApp(cfg);
-      auth = getAuth(app);
-      db = getFirestore(app);
-      isRealFirebase = true;
-      startCloudFirestoreSync();
-      updateStatusBadgeInDOM(true, cfg.projectId);
-      return { app, auth, db, isReal: true };
-    } catch (e) {
-      console.error('Failed to initialize Firebase with provided config:', e);
-    }
+  try {
+    app = initializeApp(BUILTIN_FIREBASE_CONFIG);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    isRealFirebase = true;
+    startCloudFirestoreSync();
+    updateStatusBadgeInDOM(true, BUILTIN_FIREBASE_CONFIG.projectId);
+    return { app, auth, db, isReal: true };
+  } catch (e) {
+    console.error('Failed to initialize Firebase with builtin config:', e);
+    isRealFirebase = false;
+    updateStatusBadgeInDOM(false);
+    return { app: null, auth: null, db: null, isReal: false };
   }
-  isRealFirebase = false;
-  updateStatusBadgeInDOM(false);
-  return { app: null, auth: null, db: null, isReal: false };
 }
 
 function updateStatusBadgeInDOM(isOnline, projectId = '') {
@@ -553,11 +536,11 @@ function updateStatusBadgeInDOM(isOnline, projectId = '') {
     if (isOnline) {
       dot.style.background = '#10b981';
       dot.style.boxShadow = '0 0 8px #10b981';
-      text.textContent = `Firestore: ${projectId}`;
+      text.textContent = `Firebase: ${projectId}`;
     } else {
       dot.style.background = '#f59e0b';
       dot.style.boxShadow = 'none';
-      text.textContent = 'Local Sync Engine';
+      text.textContent = 'Local Engine';
     }
   }
 }

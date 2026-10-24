@@ -3,7 +3,7 @@
  * Connects all modules: Auth, Events, Guests, Scanner, Excel Import, Badges & Stats
  */
 
-import { initFirebase, localDB, saveFirebaseConfig, DEFAULT_INITIAL_DATA } from './firebase-config.js';
+import { initFirebase, localDB } from './firebase-config.js';
 import { getLanguage, setLanguage, applyLanguageToDOM, t } from './services/i18n.js';
 import { getSessionUser, loginUser, logoutUser, createEmployeeAccount, toggleUserStatus } from './services/auth.js';
 import { getAllEvents, getActiveEvent, getActiveEventId, setActiveEventId, createEvent, updateEvent } from './services/events.js';
@@ -64,14 +64,6 @@ function setupEventListeners() {
         submitBtn.disabled = false;
         submitBtn.textContent = t('signInBtn');
       }
-    });
-  }
-
-  // Firebase config button on login screen
-  const loginFirebaseBtn = document.getElementById('login-firebase-config-btn');
-  if (loginFirebaseBtn) {
-    loginFirebaseBtn.addEventListener('click', () => {
-      document.getElementById('modal-firebase').style.display = 'flex';
     });
   }
 
@@ -272,41 +264,6 @@ function setupEventListeners() {
 
   // Employee Scanner handlers
   setupScannerHandlers();
-
-  // Firebase status button modal
-  const firebaseStatusBtn = document.getElementById('firebase-status-btn');
-  if (firebaseStatusBtn) {
-    firebaseStatusBtn.addEventListener('click', () => {
-      document.getElementById('modal-firebase').style.display = 'flex';
-    });
-  }
-
-  const btnSaveFirebaseConfig = document.getElementById('btn-save-firebase-config');
-  if (btnSaveFirebaseConfig) {
-    btnSaveFirebaseConfig.addEventListener('click', () => {
-      const val = document.getElementById('firebase-config-input').value.trim();
-      try {
-        const parsed = JSON.parse(val);
-        saveFirebaseConfig(parsed);
-        alert('Configuration saved! Reconnecting...');
-        window.location.reload();
-      } catch (e) {
-        alert('Invalid JSON config format: ' + e.message);
-      }
-    });
-  }
-
-  const btnResetDemoData = document.getElementById('btn-reset-demo-data');
-  if (btnResetDemoData) {
-    btnResetDemoData.addEventListener('click', () => {
-      if (confirm('Reset all guests and events to initial demonstration data?')) {
-        localDB.save(JSON.parse(JSON.stringify(DEFAULT_INITIAL_DATA)));
-        alert('Data reset successfully.');
-        closeAllModals();
-        renderCurrentPanel();
-      }
-    });
-  }
 }
 
 function checkInitialSession() {

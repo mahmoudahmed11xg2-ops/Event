@@ -55,10 +55,10 @@
         </button>
 
         <!-- Firebase Connection Status Badge -->
-        <button id="firebase-status-btn" class="btn btn-secondary btn-sm" title="Database Configuration">
-          <span id="firebase-status-dot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981; margin-inline-end:4px;"></span>
-          <span id="firebase-status-text">Firestore Ready</span>
-        </button>
+        <div id="firebase-status-badge" style="display: inline-flex; align-items: center; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-sm); padding: 0.25rem 0.65rem; font-size: 0.8rem; color: #10b981;">
+          <span id="firebase-status-dot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981; margin-inline-end:6px; box-shadow: 0 0 6px #10b981;"></span>
+          <span id="firebase-status-text">event-a5ab1</span>
+        </div>
 
         <!-- User Session Badge -->
         <div id="user-badge" class="user-badge" style="display: none;">
@@ -106,12 +106,6 @@
             <button type="submit" id="login-submit-btn" class="btn btn-primary" style="width: 100%; padding: 0.75rem;" data-i18n="signInBtn">
               Sign In
             </button>
-
-            <div style="text-align: center; margin-top: 1.25rem;">
-              <button type="button" id="login-firebase-config-btn" class="btn btn-secondary btn-sm" style="font-size: 0.775rem;">
-                ⚙️ <span data-i18n="firebaseTitle">Firebase & Firestore Connection</span>
-              </button>
-            </div>
 
             <div id="login-error-alert" style="display: none; margin-top: 1rem; padding: 0.75rem; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; border-radius: var(--radius-sm); color: #fca5a5; font-size: 0.85rem;"></div>
           </form>
@@ -718,49 +712,6 @@
             <button type="submit" class="btn btn-primary" data-i18n="createStaffTitle">Create Staff Member</button>
           </div>
         </form>
-      </div>
-    </div>
-
-    <!-- Modal: Firebase Settings & Rules -->
-    <div id="modal-firebase" class="modal-overlay" style="display: none;">
-      <div class="modal-content" style="max-width: 650px;">
-        <div class="modal-header">
-          <h3 data-i18n="firebaseTitle">Firebase & Firestore Connection</h3>
-          <button class="btn btn-secondary btn-sm close-modal-btn">✕</button>
-        </div>
-        <div class="modal-body">
-          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;" data-i18n="firebaseSubtitle">
-            This application is built with vanilla HTML/CSS/JS and supports both direct Cloud Firestore connection and the built-in local Firestore simulator for instantaneous testing on GitHub Pages.
-          </p>
-
-          <div class="form-group">
-            <label for="firebase-config-input" data-i18n="pasteConfigHelper">Firebase Config Object (JSON):</label>
-            <textarea id="firebase-config-input" class="form-control" rows="6" placeholder='{
-  "apiKey": "AIzaSy...",
-  "authDomain": "my-project.firebaseapp.com",
-  "projectId": "my-project",
-  "storageBucket": "my-project.appspot.com",
-  "messagingSenderId": "...",
-  "appId": "..."
-}'></textarea>
-          </div>
-
-          <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-            <button id="btn-save-firebase-config" class="btn btn-primary btn-sm" data-i18n="saveConfig">
-              Apply & Reconnect
-            </button>
-            <button id="btn-reset-demo-data" class="btn btn-danger btn-sm" data-i18n="resetDemoData">
-              Reset Demo Data to Initial State
-            </button>
-          </div>
-
-          <div style="background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-dim);" data-i18n="firestoreRulesNotice">
-            Firestore Security Rules (firestore.rules) are included in the repository to guarantee atomic check-ins, prevent client tampering, and restrict staff permissions.
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary close-modal-btn" data-i18n="close">Close</button>
-        </div>
       </div>
     </div>
 

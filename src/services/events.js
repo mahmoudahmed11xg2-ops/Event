@@ -2,8 +2,9 @@
  * Event Management Service
  */
 
-import { localDB } from '../firebase-config.js';
+import { localDB, getFirebaseInstance } from '../firebase-config.js';
 import { getSessionUser } from './auth.js';
+import { doc, setDoc, updateDoc } from 'firebase/firestore';
 
 const STORAGE_ACTIVE_EVENT_KEY = 'ems_active_event_id';
 
@@ -77,6 +78,17 @@ export function createEvent({ name, description, venue, startAt, endAt, timeZone
   });
 
   localDB.save();
+
+  // Cloud Firestore Sync
+  const { isReal, db } = getFirebaseInstance();
+  if (isReal && db) {
+    try {
+      setDoc(doc(db, 'events', id), newEvent).catch(e => console.warn('Firestore event sync error:', e));
+    } catch (e) {
+      console.warn('Firestore event sync error:', e);
+    }
+  }
+
   return newEvent;
 }
 
@@ -97,5 +109,16 @@ export function updateEvent(id, updates) {
   });
 
   localDB.save();
+
+  // Cloud Firestore Sync
+  const { isReal, db } = getFirebaseInstance();
+  if (isReal && db) {
+    try {
+      updateDoc(doc(db, 'events', id), updates).catch(e => console.warn('Firestore event update error:', e));
+    } catch (e) {
+      console.warn('Firestore event update error:', e);
+    }
+  }
+
   return event;
 }
