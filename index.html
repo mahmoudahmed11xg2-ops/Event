@@ -85,7 +85,7 @@
           <form id="login-form">
             <div class="form-group">
               <label for="login-email" data-i18n="email">Email Address</label>
-              <input type="email" id="login-email" class="form-control" required placeholder="name@event.org" value="admin@event.org" />
+              <input type="email" id="login-email" class="form-control" required placeholder="name@event.org" autocomplete="email" />
             </div>
 
             <div class="form-group">
@@ -95,32 +95,22 @@
                   Show
                 </button>
               </div>
-              <input type="password" id="login-password" class="form-control" required placeholder="••••••••" value="admin123" />
+              <input type="password" id="login-password" class="form-control" required placeholder="••••••••" autocomplete="current-password" />
             </div>
 
             <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
               <input type="checkbox" id="login-remember" checked />
-              <label for="login-remember">Remember session on this device</label>
+              <label for="login-remember" data-i18n="rememberMe">Remember session on this device</label>
             </div>
 
             <button type="submit" id="login-submit-btn" class="btn btn-primary" style="width: 100%; padding: 0.75rem;" data-i18n="signInBtn">
               Sign In
             </button>
 
-            <!-- Quick Demo Credentials Helper for convenient testing -->
-            <div class="demo-credentials-box">
-              <div style="font-weight: 600; color: #fca5a5;">Quick Test Credentials (Pre-seeded):</div>
-              <div style="margin-top: 0.25rem; color: var(--text-muted); font-size: 0.75rem;">
-                Click any role below to pre-fill verified credentials:
-              </div>
-              <div class="btn-row">
-                <button type="button" id="demo-admin-btn" class="btn btn-secondary btn-sm" style="flex:1;">
-                  Admin (All Features)
-                </button>
-                <button type="button" id="demo-staff-btn" class="btn btn-secondary btn-sm" style="flex:1;">
-                  Staff (QR Scanner)
-                </button>
-              </div>
+            <div style="text-align: center; margin-top: 1.25rem;">
+              <button type="button" id="login-firebase-config-btn" class="btn btn-secondary btn-sm" style="font-size: 0.775rem;">
+                ⚙️ <span data-i18n="firebaseTitle">Firebase & Firestore Connection</span>
+              </button>
             </div>
 
             <div id="login-error-alert" style="display: none; margin-top: 1rem; padding: 0.75rem; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; border-radius: var(--radius-sm); color: #fca5a5; font-size: 0.85rem;"></div>
@@ -186,27 +176,27 @@
               <div class="stat-card total">
                 <span class="stat-label" data-i18n="statTotalGuests">Total Guests</span>
                 <span class="stat-val" id="stat-total-guests">0</span>
-                <span class="stat-sub">Registered across lists</span>
+                <span class="stat-sub" data-i18n="statTotalGuestsSub">Registered across lists</span>
               </div>
               <div class="stat-card valid">
                 <span class="stat-label" data-i18n="statValidInvitations">Valid Invitations</span>
                 <span class="stat-val" id="stat-valid-invitations">0</span>
-                <span class="stat-sub">Eligible for admission</span>
+                <span class="stat-sub" data-i18n="statValidInvitationsSub">Eligible for admission</span>
               </div>
               <div class="stat-card checked-in">
                 <span class="stat-label" data-i18n="statCheckedIn">Checked In</span>
                 <span class="stat-val" id="stat-checked-in">0</span>
-                <span class="stat-sub">Admitted at gates</span>
+                <span class="stat-sub" data-i18n="statCheckedInSub">Admitted at gates</span>
               </div>
               <div class="stat-card arriving">
                 <span class="stat-label" data-i18n="statYetToArrive">Yet to Arrive</span>
                 <span class="stat-val" id="stat-yet-to-arrive">0</span>
-                <span class="stat-sub">Pending guests</span>
+                <span class="stat-sub" data-i18n="statYetToArriveSub">Pending guests</span>
               </div>
               <div class="stat-card cancelled">
                 <span class="stat-label" data-i18n="statCancelled">Cancelled</span>
                 <span class="stat-val" id="stat-cancelled">0</span>
-                <span class="stat-sub">Excluded from entry</span>
+                <span class="stat-sub" data-i18n="statCancelledSub">Excluded from entry</span>
               </div>
               <div class="stat-card rate">
                 <span class="stat-label" data-i18n="statAttendanceRate">Attendance Rate</span>
@@ -223,7 +213,7 @@
                 <span data-i18n="recentActivity">Live Check-in Activity</span>
                 <span style="font-size: 0.8rem; color: #10b981; display: flex; align-items: center; gap: 4px;">
                   <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
-                  Real-time Sync
+                  <span data-i18n="realtimeSync">Real-time Sync</span>
                 </span>
               </div>
               <div class="table-responsive">
@@ -301,7 +291,7 @@
             <div class="panel-header">
               <div>
                 <h2 data-i18n="eventsTitle">Event Management</h2>
-                <p>Manage corporate gatherings, venues, timezones and active status</p>
+                <p data-i18n="eventsSubtitle">Manage corporate gatherings, venues, timezones and active status</p>
               </div>
               <button class="btn btn-primary" id="btn-open-create-event" data-i18n="newEventBtn">+ Create Event</button>
             </div>
@@ -332,7 +322,7 @@
             <div class="panel-header">
               <div>
                 <h2 data-i18n="guestsTitle">Guest Management</h2>
-                <p>Register attendees, issue cryptographically unique QR passes, and monitor attendance</p>
+                <p data-i18n="guestsSubtitle">Register attendees, issue cryptographically unique QR passes, and monitor attendance</p>
               </div>
               <div style="display: flex; gap: 0.5rem;">
                 <button class="btn btn-secondary" id="btn-export-guests-csv" data-i18n="exportCsv">Export CSV</button>
@@ -468,9 +458,9 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;" id="qr-panel-grid">
               <!-- Guest Picker -->
               <div class="card">
-                <div class="card-title">Select Guest to Preview Pass</div>
+                <div class="card-title" data-i18n="selectGuestPreview">Select Guest to Preview Pass</div>
                 <div class="form-group">
-                  <label for="badge-guest-select">Guest Name</label>
+                  <label for="badge-guest-select" data-i18n="fullName">Guest Name</label>
                   <select id="badge-guest-select" class="form-control">
                     <!-- Populated dynamically -->
                   </select>
@@ -518,7 +508,7 @@
                   <thead>
                     <tr>
                       <th data-i18n="timestamp">Timestamp</th>
-                      <th>Result</th>
+                      <th data-i18n="validationResult">Result</th>
                       <th data-i18n="fullName">Guest Name</th>
                       <th data-i18n="company">Company</th>
                       <th data-i18n="token">Token</th>
@@ -541,10 +531,10 @@
                   <thead>
                     <tr>
                       <th data-i18n="timestamp">Time</th>
-                      <th>Action</th>
-                      <th>Target</th>
-                      <th>Details</th>
-                      <th>Actor</th>
+                      <th data-i18n="actions">Action</th>
+                      <th data-i18n="details">Target</th>
+                      <th data-i18n="details">Details</th>
+                      <th data-i18n="employee">Actor</th>
                     </tr>
                   </thead>
                   <tbody id="audit-table-body"></tbody>
@@ -558,9 +548,9 @@
             <div class="panel-header">
               <div>
                 <h2 data-i18n="navEmployees">Staff & Employee Accounts</h2>
-                <p>Manage check-in staff members and entrance terminal permissions</p>
+                <p data-i18n="staffAccountsSubtitle">Manage check-in staff members and entrance terminal permissions</p>
               </div>
-              <button class="btn btn-primary" id="btn-open-create-staff">+ Add Staff Member</button>
+              <button class="btn btn-primary" id="btn-open-create-staff" data-i18n="addStaffBtn">+ Add Staff Member</button>
             </div>
 
             <div class="card">
@@ -568,12 +558,12 @@
                 <table class="data-table">
                   <thead>
                     <tr>
-                      <th>Display Name</th>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th>Active Status</th>
-                      <th>Created</th>
-                      <th>Actions</th>
+                      <th data-i18n="displayName">Display Name</th>
+                      <th data-i18n="email">Email</th>
+                      <th data-i18n="invitationStatus">Role</th>
+                      <th data-i18n="activeStatus">Active Status</th>
+                      <th data-i18n="createdDate">Created</th>
+                      <th data-i18n="actions">Actions</th>
                     </tr>
                   </thead>
                   <tbody id="staff-table-body"></tbody>
@@ -706,26 +696,26 @@
     <div id="modal-staff" class="modal-overlay" style="display: none;">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>Create Check-in Staff Account</h3>
+          <h3 data-i18n="createStaffTitle">Create Check-in Staff Account</h3>
           <button class="btn btn-secondary btn-sm close-modal-btn">✕</button>
         </div>
         <form id="form-staff">
           <div class="modal-body">
             <div class="form-group">
-              <label for="staff-name">Staff Member Name *</label>
+              <label for="staff-name" data-i18n="staffNameLabel">Staff Member Name *</label>
               <input type="text" id="staff-name" class="form-control" required placeholder="e.g. Entrance Gate 2 - Officer Khalid" />
             </div>
             <div class="form-group">
-              <label for="staff-email">Staff Email Address *</label>
+              <label for="staff-email" data-i18n="staffEmailLabel">Staff Email Address *</label>
               <input type="email" id="staff-email" class="form-control" required placeholder="gate2@event.org" />
             </div>
-            <p style="font-size: 0.8rem; color: var(--text-dim); margin-top: 0.5rem;">
+            <p style="font-size: 0.8rem; color: var(--text-dim); margin-top: 0.5rem;" data-i18n="staffNotice">
               The staff account will have permissions restricted to scanning QR codes and checking in attendees. Administrative areas remain strictly protected.
             </p>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary close-modal-btn" data-i18n="cancel">Cancel</button>
-            <button type="submit" class="btn btn-primary">Create Staff Member</button>
+            <button type="submit" class="btn btn-primary" data-i18n="createStaffTitle">Create Staff Member</button>
           </div>
         </form>
       </div>
@@ -739,7 +729,7 @@
           <button class="btn btn-secondary btn-sm close-modal-btn">✕</button>
         </div>
         <div class="modal-body">
-          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;" data-i18n="firebaseSubtitle">
             This application is built with vanilla HTML/CSS/JS and supports both direct Cloud Firestore connection and the built-in local Firestore simulator for instantaneous testing on GitHub Pages.
           </p>
 
@@ -759,17 +749,17 @@
             <button id="btn-save-firebase-config" class="btn btn-primary btn-sm" data-i18n="saveConfig">
               Apply & Reconnect
             </button>
-            <button id="btn-reset-demo-data" class="btn btn-danger btn-sm">
+            <button id="btn-reset-demo-data" class="btn btn-danger btn-sm" data-i18n="resetDemoData">
               Reset Demo Data to Initial State
             </button>
           </div>
 
-          <div style="background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-dim);">
-            <strong>Firestore Security Rules (`firestore.rules`):</strong> Included in project root. Enforces role-based checks (`request.auth.uid`), prevents direct client modification of check-in records, and protects token validity.
+          <div style="background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: var(--text-dim);" data-i18n="firestoreRulesNotice">
+            Firestore Security Rules (firestore.rules) are included in the repository to guarantee atomic check-ins, prevent client tampering, and restrict staff permissions.
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary close-modal-btn" data-i18n="cancel">Close</button>
+          <button type="button" class="btn btn-secondary close-modal-btn" data-i18n="close">Close</button>
         </div>
       </div>
     </div>

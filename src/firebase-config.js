@@ -1,7 +1,7 @@
 /**
- * Firebase Initialization & Resilient Data Layer
- * Handles Firebase Auth & Cloud Firestore with atomic transactions
- * Includes local Firestore simulator for immediate zero-config testing & GitHub Pages standalone preview
+ * Firebase Real-time Initialization & Firestore Synchronization Engine
+ * Full real-time synchronization via onSnapshot listeners and atomic runTransaction check-ins.
+ * Falls back to local synchronous Firestore simulator when no credentials are configured.
  */
 
 import { initializeApp } from 'firebase/app';
@@ -27,7 +27,6 @@ import {
   orderBy 
 } from 'firebase/firestore';
 
-// Default / cached Firebase configuration
 const STORAGE_KEY_CONFIG = 'ems_firebase_config';
 const STORAGE_KEY_LOCAL_DB = 'ems_firestore_mock_db';
 
@@ -35,8 +34,8 @@ let app = null;
 let auth = null;
 let db = null;
 let isRealFirebase = false;
+let firestoreUnsubscribers = [];
 
-// Default demo event and initial bootstrap data
 export const DEFAULT_INITIAL_DATA = {
   users: {
     'admin-root-uid': {
@@ -171,13 +170,10 @@ export const DEFAULT_INITIAL_DATA = {
   ]
 };
 
-// Check if user has saved real Firebase configuration in localStorage
-function getSavedConfig() {
+export function getSavedConfig() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_CONFIG);
-    if (raw) {
-      return JSON.parse(raw);
-    }
+    if (raw) return JSON.parse(raw);
   } catch (e) {
     console.error('Error reading saved Firebase config:', e);
   }
@@ -194,7 +190,10 @@ export function saveFirebaseConfig(cfg) {
   }
 }
 
-// In-Memory / LocalStorage Synchronous Engine
+export function removeFirebaseConfig() {
+  localStorage.removeItem(STORAGE_KEY_CONFIG);
+}
+
 class LocalFirestoreEngine {
   constructor() {
     this.listeners = new Set();
@@ -204,9 +203,7 @@ class LocalFirestoreEngine {
   load() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY_LOCAL_DB);
-      if (stored) {
-        return JSON.parse(stored);
-      }
+      if (stored) return JSON.parse(stored);
     } catch (e) {
       console.warn('Using fresh default data');
     }
@@ -236,14 +233,24 @@ class LocalFirestoreEngine {
     return () => this.listeners.delete(cb);
   }
 
-  // Atomic Check-in Execution (guarantees single-use check-in)
-  atomicCheckin(token, eventId, employee) {
-    // 1. Validate inputs
+  // Atomic Check-in Execution
+  async atomicCheckin(token, eventId, employee) {
     if (!token || !eventId) {
       return { success: false, code: 'INVALID_TOKEN', reason: 'Token or Event ID missing' };
     }
 
     const cleanToken = token.trim().toUpperCase();
+
+    // If Real Firebase Firestore is active, execute real Firestore runTransaction
+    if (isRealFirebase && db) {
+      try {
+        return await this.executeCloudFirestoreTransaction(cleanToken, eventId, employee);
+      } catch (cloudErr) {
+        console.error('Cloud Firestore transaction error, falling back:', cloudErr);
+      }
+    }
+
+    // Local in-memory transaction
     const event = this.data.events[eventId];
     if (!event || event.status !== 'Active') {
       const attempt = {
@@ -260,7 +267,6 @@ class LocalFirestoreEngine {
       return { success: false, code: 'EVENT_NOT_ACTIVE', reason: attempt.rejectionReason };
     }
 
-    // 2. Find guest with this token
     const guestEntry = Object.entries(this.data.guests).find(([_, g]) => {
       return g.token && g.token.toUpperCase() === cleanToken && g.eventId === eventId;
     });
@@ -282,14 +288,13 @@ class LocalFirestoreEngine {
 
     const [guestId, guest] = guestEntry;
 
-    // 3. Check invitation status
     if (guest.invitationStatus === 'CANCELLED' || guest.invitationStatus === 'REVOKED') {
       const attempt = {
         id: 'att-' + Date.now(),
         eventId,
         token: cleanToken,
         result: 'CANCELLED_INVITATION',
-        rejectionReason: `Invitation was ${guest.invitationStatus.toLowerCase()} by an administrator.`,
+        rejectionReason: `Invitation was cancelled by an administrator.`,
         employeeUid: employee?.uid || 'anonymous',
         timestamp: new Date().toISOString()
       };
@@ -324,7 +329,6 @@ class LocalFirestoreEngine {
       };
     }
 
-    // 4. ATOMIC CHECK-IN SUCCESS
     const checkinTime = new Date().toISOString();
     guest.invitationStatus = 'CHECKED_IN';
     guest.checkedInAt = checkinTime;
@@ -361,11 +365,109 @@ class LocalFirestoreEngine {
       checkinTime
     };
   }
+
+  // Real Cloud Firestore Transaction
+  async executeCloudFirestoreTransaction(token, eventId, employee) {
+    const q = query(
+      collection(db, 'guests'), 
+      where('eventId', '==', eventId), 
+      where('token', '==', token)
+    );
+    const querySnap = await getDocs(q);
+
+    if (querySnap.empty) {
+      await setDoc(doc(collection(db, 'checkinAttempts')), {
+        eventId,
+        token,
+        result: 'INVALID_TOKEN',
+        rejectionReason: 'Token not found in Cloud Firestore',
+        employeeUid: employee?.uid || 'staff',
+        timestamp: new Date().toISOString()
+      });
+      return { success: false, code: 'INVALID_TOKEN', reason: 'Invalid or unknown QR token' };
+    }
+
+    const guestDoc = querySnap.docs[0];
+    const guestRef = doc(db, 'guests', guestDoc.id);
+
+    return await runTransaction(db, async (transaction) => {
+      const freshSnap = await transaction.get(guestRef);
+      if (!freshSnap.exists()) {
+        throw new Error('Guest record not found');
+      }
+
+      const gData = freshSnap.data();
+
+      if (gData.invitationStatus === 'CHECKED_IN') {
+        const attemptRef = doc(collection(db, 'checkinAttempts'));
+        transaction.set(attemptRef, {
+          eventId,
+          guestId: freshSnap.id,
+          token,
+          result: 'ALREADY_CHECKED_IN',
+          rejectionReason: `Already checked in at ${new Date(gData.checkedInAt).toLocaleTimeString()}`,
+          employeeUid: employee?.uid || 'staff',
+          timestamp: new Date().toISOString()
+        });
+        return { 
+          success: false, 
+          code: 'ALREADY_CHECKED_IN', 
+          reason: `Already checked in at ${new Date(gData.checkedInAt).toLocaleTimeString()}`,
+          originalCheckinTime: gData.checkedInAt,
+          guest: { fullName: gData.fullName, company: gData.company }
+        };
+      }
+
+      if (gData.invitationStatus === 'CANCELLED' || gData.invitationStatus === 'REVOKED') {
+        return {
+          success: false,
+          code: 'CANCELLED_INVITATION',
+          reason: 'Invitation cancelled by administrator',
+          guest: { fullName: gData.fullName, company: gData.company }
+        };
+      }
+
+      const checkinTime = new Date().toISOString();
+
+      transaction.update(guestRef, {
+        invitationStatus: 'CHECKED_IN',
+        checkedInAt: checkinTime,
+        checkedInBy: employee?.uid || 'staff',
+        updatedAt: checkinTime
+      });
+
+      const checkinRef = doc(collection(db, 'checkins'));
+      transaction.set(checkinRef, {
+        eventId,
+        guestId: freshSnap.id,
+        guestName: gData.fullName,
+        company: gData.company,
+        token,
+        result: 'SUCCESS',
+        employeeUid: employee?.uid || 'staff',
+        employeeName: employee?.displayName || 'Staff Member',
+        timestamp: checkinTime
+      });
+
+      return {
+        success: true,
+        code: 'SUCCESS',
+        guest: {
+          id: freshSnap.id,
+          fullName: gData.fullName,
+          company: gData.company,
+          email: gData.email,
+          phone: gData.phone,
+          companionLimit: gData.companionLimit || 0
+        },
+        checkinTime
+      };
+    });
+  }
 }
 
 export const localDB = new LocalFirestoreEngine();
 
-// Cryptographically secure token generator
 export function generateSecureToken() {
   const bytes = new Uint8Array(6);
   window.crypto.getRandomValues(bytes);
@@ -373,7 +475,57 @@ export function generateSecureToken() {
   return `INV-${hex.slice(0, 4)}-${hex.slice(4, 8)}-${hex.slice(8, 12)}`;
 }
 
-// Initialize Firebase if user config exists
+// Attach Real-time onSnapshot listeners to Cloud Firestore
+function startCloudFirestoreSync() {
+  if (!db) return;
+
+  // Clear existing listeners
+  firestoreUnsubscribers.forEach(u => { try { u(); } catch(e){} });
+  firestoreUnsubscribers = [];
+
+  try {
+    // 1. Sync Events
+    const unsubEvents = onSnapshot(collection(db, 'events'), (snap) => {
+      snap.forEach(d => {
+        localDB.data.events[d.id] = { id: d.id, ...d.data() };
+      });
+      localDB.save();
+    }, (err) => console.warn('Events sync error:', err));
+    firestoreUnsubscribers.push(unsubEvents);
+
+    // 2. Sync Guests
+    const unsubGuests = onSnapshot(collection(db, 'guests'), (snap) => {
+      snap.forEach(d => {
+        localDB.data.guests[d.id] = { id: d.id, ...d.data() };
+      });
+      localDB.save();
+    }, (err) => console.warn('Guests sync error:', err));
+    firestoreUnsubscribers.push(unsubGuests);
+
+    // 3. Sync Checkins (Live Attendance)
+    const unsubCheckins = onSnapshot(collection(db, 'checkins'), (snap) => {
+      snap.forEach(d => {
+        localDB.data.checkins[d.id] = { id: d.id, ...d.data() };
+      });
+      localDB.save();
+    }, (err) => console.warn('Checkins sync error:', err));
+    firestoreUnsubscribers.push(unsubCheckins);
+
+    // 4. Sync Users
+    const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
+      snap.forEach(d => {
+        localDB.data.users[d.id] = { uid: d.id, ...d.data() };
+      });
+      localDB.save();
+    }, (err) => console.warn('Users sync error:', err));
+    firestoreUnsubscribers.push(unsubUsers);
+
+    console.log('Real-time Cloud Firestore synchronization online.');
+  } catch (e) {
+    console.error('Failed to attach Cloud Firestore listeners:', e);
+  }
+}
+
 export function initFirebase() {
   const cfg = getSavedConfig();
   if (cfg && cfg.apiKey && cfg.projectId) {
@@ -382,18 +534,40 @@ export function initFirebase() {
       auth = getAuth(app);
       db = getFirestore(app);
       isRealFirebase = true;
-      console.log('Firebase initialized with custom configuration:', cfg.projectId);
+      startCloudFirestoreSync();
+      updateStatusBadgeInDOM(true, cfg.projectId);
       return { app, auth, db, isReal: true };
     } catch (e) {
       console.error('Failed to initialize Firebase with provided config:', e);
     }
   }
   isRealFirebase = false;
+  updateStatusBadgeInDOM(false);
   return { app: null, auth: null, db: null, isReal: false };
+}
+
+function updateStatusBadgeInDOM(isOnline, projectId = '') {
+  const dot = document.getElementById('firebase-status-dot');
+  const text = document.getElementById('firebase-status-text');
+  if (dot && text) {
+    if (isOnline) {
+      dot.style.background = '#10b981';
+      dot.style.boxShadow = '0 0 8px #10b981';
+      text.textContent = `Firestore: ${projectId}`;
+    } else {
+      dot.style.background = '#f59e0b';
+      dot.style.boxShadow = 'none';
+      text.textContent = 'Local Sync Engine';
+    }
+  }
 }
 
 export function isUsingRealFirebase() {
   return isRealFirebase;
+}
+
+export function getFirebaseInstance() {
+  return { app, auth, db, isReal: isRealFirebase };
 }
 
 export function getDatabase() {

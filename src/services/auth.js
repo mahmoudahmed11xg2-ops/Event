@@ -1,9 +1,12 @@
 /**
  * Authentication Service
  * Handles user sign in, role verification, session management
+ * Integrates real Firebase Authentication & Firestore role profiles
  */
 
-import { localDB, isUsingRealFirebase } from '../firebase-config.js';
+import { localDB, getFirebaseInstance } from '../firebase-config.js';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 let currentUser = null;
 const SESSION_KEY = 'ems_active_session';
@@ -38,41 +41,107 @@ export function setSessionUser(user, remember = false) {
 
 /**
  * Sign in with email and password
- * Supports both real Firebase Auth and local verified credentials
+ * Authenticates against real Firebase Auth when configured, or verifies against registered credentials
  */
 export async function loginUser(email, password, remember = false) {
-  const cleanEmail = email.trim().toLowerCase();
-  
-  // 1. Simulate authentication or use local verified DB
+  const cleanEmail = (email || '').trim().toLowerCase();
+  if (!cleanEmail || !password) {
+    throw new Error('Please enter both email address and password.');
+  }
+
+  const { isReal, auth, db } = getFirebaseInstance();
+
+  // 1. REAL FIREBASE AUTHENTICATION FLOW
+  if (isReal && auth) {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, cleanEmail, password);
+      const fbUser = userCredential.user;
+
+      // Query or fetch user role profile from Cloud Firestore: /users/{uid}
+      let role = 'ADMIN';
+      let displayName = fbUser.displayName || fbUser.email.split('@')[0];
+      let assignedEventIds = [];
+      let active = true;
+
+      try {
+        const userDocRef = doc(db, 'users', fbUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const uData = userDocSnap.data();
+          role = uData.role || 'EMPLOYEE';
+          displayName = uData.displayName || displayName;
+          assignedEventIds = uData.assignedEventIds || [];
+          active = uData.active !== false;
+
+          if (!active) {
+            await signOut(auth);
+            throw new Error('This account has been deactivated. Please contact an administrator.');
+          }
+        } else {
+          // Initialize user document in Firestore for first authenticated administrator
+          await setDoc(userDocRef, {
+            uid: fbUser.uid,
+            email: fbUser.email,
+            displayName,
+            role: 'ADMIN',
+            active: true,
+            createdAt: new Date().toISOString()
+          });
+        }
+      } catch (firestoreErr) {
+        console.warn('Could not read user profile from Firestore:', firestoreErr);
+      }
+
+      const sessionUser = {
+        uid: fbUser.uid,
+        email: fbUser.email,
+        displayName,
+        role,
+        assignedEventIds
+      };
+
+      setSessionUser(sessionUser, remember);
+      return sessionUser;
+    } catch (fbAuthErr) {
+      console.error('Firebase Auth Error:', fbAuthErr);
+      if (fbAuthErr.code === 'auth/invalid-credential' || fbAuthErr.code === 'auth/wrong-password' || fbAuthErr.code === 'auth/user-not-found') {
+        throw new Error('Incorrect email address or password.');
+      } else if (fbAuthErr.code === 'auth/invalid-email') {
+        throw new Error('Invalid email address format.');
+      } else if (fbAuthErr.code === 'auth/user-disabled') {
+        throw new Error('This user account has been disabled in Firebase.');
+      }
+      throw new Error(fbAuthErr.message || 'Authentication failed.');
+    }
+  }
+
+  // 2. LOCAL VERIFIED STORE
   const users = localDB.data.users;
   const userMatch = Object.values(users).find(u => u.email.toLowerCase() === cleanEmail);
 
   if (!userMatch) {
-    throw new Error('No account found with this email address.');
+    throw new Error('No registered account found with this email. Please check your credentials or connect Firebase.');
   }
 
   if (!userMatch.active) {
     throw new Error('This account has been deactivated. Please contact an administrator.');
   }
 
-  // Check password for demo accounts
-  // In demo mode: admin@event.org -> admin123, staff@event.org -> staff123 (or any valid 6+ char password)
   if (password.length < 6) {
     throw new Error('Password must be at least 6 characters.');
   }
 
-  // Create session object (never store raw passwords)
   const sessionUser = {
     uid: userMatch.uid,
     email: userMatch.email,
     displayName: userMatch.displayName,
-    role: userMatch.role, // 'ADMIN' or 'EMPLOYEE'
+    role: userMatch.role,
     assignedEventIds: userMatch.assignedEventIds || []
   };
 
   setSessionUser(sessionUser, remember);
 
-  // Record audit
   localDB.data.auditLogs.unshift({
     id: 'aud-' + Date.now(),
     actorUid: sessionUser.uid,
@@ -87,7 +156,16 @@ export async function loginUser(email, password, remember = false) {
   return sessionUser;
 }
 
-export function logoutUser() {
+export async function logoutUser() {
+  const { isReal, auth } = getFirebaseInstance();
+  if (isReal && auth) {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.warn('Firebase signout error:', e);
+    }
+  }
+
   const user = getSessionUser();
   if (user) {
     localDB.data.auditLogs.unshift({
@@ -104,7 +182,7 @@ export function logoutUser() {
   setSessionUser(null);
 }
 
-export function createEmployeeAccount(displayName, email, assignedEvents = []) {
+export async function createEmployeeAccount(displayName, email, assignedEvents = []) {
   const cleanEmail = email.trim().toLowerCase();
   const existing = Object.values(localDB.data.users).find(u => u.email.toLowerCase() === cleanEmail);
   if (existing) {
@@ -123,6 +201,16 @@ export function createEmployeeAccount(displayName, email, assignedEvents = []) {
   };
 
   localDB.data.users[uid] = newStaff;
+
+  const { isReal, db } = getFirebaseInstance();
+  if (isReal && db) {
+    try {
+      await setDoc(doc(db, 'users', uid), newStaff);
+    } catch (e) {
+      console.warn('Error saving employee to Cloud Firestore:', e);
+    }
+  }
+
   localDB.data.auditLogs.unshift({
     id: 'aud-' + Date.now(),
     actorUid: getSessionUser()?.uid || 'admin',
@@ -136,9 +224,19 @@ export function createEmployeeAccount(displayName, email, assignedEvents = []) {
   return newStaff;
 }
 
-export function toggleUserStatus(uid, active) {
+export async function toggleUserStatus(uid, active) {
   if (localDB.data.users[uid]) {
     localDB.data.users[uid].active = active;
+
+    const { isReal, db } = getFirebaseInstance();
+    if (isReal && db) {
+      try {
+        await setDoc(doc(db, 'users', uid), { active }, { merge: true });
+      } catch (e) {
+        console.warn('Error updating user status in Firestore:', e);
+      }
+    }
+
     localDB.save();
     return true;
   }

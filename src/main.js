@@ -67,21 +67,11 @@ function setupEventListeners() {
     });
   }
 
-  // Demo Credentials quick prefill
-  const demoAdminBtn = document.getElementById('demo-admin-btn');
-  const demoStaffBtn = document.getElementById('demo-staff-btn');
-  if (demoAdminBtn) {
-    demoAdminBtn.addEventListener('click', () => {
-      document.getElementById('login-email').value = 'admin@event.org';
-      document.getElementById('login-password').value = 'admin123';
-      document.getElementById('login-form').requestSubmit();
-    });
-  }
-  if (demoStaffBtn) {
-    demoStaffBtn.addEventListener('click', () => {
-      document.getElementById('login-email').value = 'staff@event.org';
-      document.getElementById('login-password').value = 'staff123';
-      document.getElementById('login-form').requestSubmit();
+  // Firebase config button on login screen
+  const loginFirebaseBtn = document.getElementById('login-firebase-config-btn');
+  if (loginFirebaseBtn) {
+    loginFirebaseBtn.addEventListener('click', () => {
+      document.getElementById('modal-firebase').style.display = 'flex';
     });
   }
 
@@ -487,21 +477,30 @@ function renderEventsTable() {
   const events = getAllEvents();
   const activeId = getActiveEventId();
 
-  tbody.innerHTML = events.map(e => `
-    <tr>
-      <td style="font-weight:600; color:#fff;">
-        ${e.name}
-        ${e.id === activeId ? '<span class="status-pill valid" style="margin-inline-start:6px; font-size:0.65rem;">ACTIVE</span>' : ''}
-      </td>
-      <td>${e.venue}</td>
-      <td style="font-size:0.8rem; color:var(--text-muted);">${e.startAt ? new Date(e.startAt).toLocaleString() : '—'}</td>
-      <td style="font-size:0.8rem;">${e.timeZone}</td>
-      <td><span class="status-pill ${e.status.toLowerCase()}">${e.status}</span></td>
-      <td>
-        ${e.id !== activeId ? `<button class="btn btn-secondary btn-sm btn-activate-event" data-id="${e.id}">Set Active</button>` : '<span style="color:#10b981; font-size:0.8rem;">✓ Current</span>'}
-      </td>
-    </tr>
-  `).join('');
+  if (events.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-dim); padding:1.5rem;">${t('noActiveEventSelected')}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = events.map(e => {
+    const statusKey = 'status' + (e.status || 'Active');
+    const translatedStatus = t(statusKey) || e.status;
+    return `
+      <tr>
+        <td style="font-weight:600; color:#fff;">
+          ${e.name}
+          ${e.id === activeId ? `<span class="status-pill valid" style="margin-inline-start:6px; font-size:0.65rem;">${t('currentBadge')}</span>` : ''}
+        </td>
+        <td>${e.venue}</td>
+        <td style="font-size:0.8rem; color:var(--text-muted);">${e.startAt ? new Date(e.startAt).toLocaleString() : '—'}</td>
+        <td style="font-size:0.8rem;">${e.timeZone}</td>
+        <td><span class="status-pill ${e.status.toLowerCase()}">${translatedStatus}</span></td>
+        <td>
+          ${e.id !== activeId ? `<button class="btn btn-secondary btn-sm btn-activate-event" data-id="${e.id}">${t('setActiveBtn')}</button>` : `<span style="color:#10b981; font-size:0.8rem;">${t('currentBadge')}</span>`}
+        </td>
+      </tr>
+    `;
+  }).join('');
 
   document.querySelectorAll('.btn-activate-event').forEach(b => {
     b.addEventListener('click', () => {
@@ -519,7 +518,7 @@ function renderGuestsTable() {
 
   const activeEvent = getActiveEvent();
   if (!activeEvent) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:1.5rem;">No active event.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:1.5rem;">${t('noActiveEventTerminal')}</td></tr>`;
     return;
   }
 
@@ -528,13 +527,17 @@ function renderGuestsTable() {
   const guests = getGuestsForEvent(activeEvent.id, { search, status });
 
   if (guests.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-dim); padding:1.5rem;">No guests matching current filters.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-dim); padding:1.5rem;">${t('noGuestsMatch')}</td></tr>`;
     return;
   }
 
   tbody.innerHTML = guests.map(g => {
     const isCancelled = g.invitationStatus === 'CANCELLED' || g.invitationStatus === 'REVOKED';
     const isCheckedIn = g.invitationStatus === 'CHECKED_IN';
+    const statusText = g.invitationStatus === 'VALID' ? t('statusValid') :
+                       g.invitationStatus === 'CHECKED_IN' ? t('statusCheckedIn') :
+                       g.invitationStatus === 'CANCELLED' ? t('statusCancelledInv') : t('statusRevoked');
+
     return `
       <tr>
         <td style="font-weight:600; color:#fff;">${g.fullName}</td>
@@ -542,13 +545,13 @@ function renderGuestsTable() {
         <td style="font-size:0.8rem; color:var(--text-muted);">${g.email || '—'}</td>
         <td style="font-size:0.8rem;">${g.phone || '—'}</td>
         <td style="text-align:center;">${g.companionLimit || 0}</td>
-        <td><span class="status-pill ${g.invitationStatus.toLowerCase()}">${g.invitationStatus}</span></td>
+        <td><span class="status-pill ${g.invitationStatus.toLowerCase()}">${statusText}</span></td>
         <td><span class="token-code">${g.token}</span></td>
         <td>
           <div style="display:flex; gap:4px;">
-            <button class="btn btn-secondary btn-sm btn-view-badge" data-id="${g.id}" title="View Pass">🪪</button>
-            <button class="btn btn-secondary btn-sm btn-reissue-guest" data-id="${g.id}" title="Reissue QR">🔄</button>
-            ${!isCancelled && !isCheckedIn ? `<button class="btn btn-danger btn-sm btn-cancel-guest" data-id="${g.id}" title="Cancel Pass">✕</button>` : ''}
+            <button class="btn btn-secondary btn-sm btn-view-badge" data-id="${g.id}" title="${t('viewBadge')}">🪪</button>
+            <button class="btn btn-secondary btn-sm btn-reissue-guest" data-id="${g.id}" title="${t('reissue')}">🔄</button>
+            ${!isCancelled && !isCheckedIn ? `<button class="btn btn-danger btn-sm btn-cancel-guest" data-id="${g.id}" title="${t('cancelInvitation')}">✕</button>` : ''}
           </div>
         </td>
       </tr>
@@ -770,12 +773,16 @@ async function renderBadgePreview(guest) {
   const activeEvent = getActiveEvent();
   const infoBox = document.getElementById('badge-guest-details-box');
 
+  const statusText = guest.invitationStatus === 'VALID' ? t('statusValid') :
+                     guest.invitationStatus === 'CHECKED_IN' ? t('statusCheckedIn') :
+                     guest.invitationStatus === 'CANCELLED' ? t('statusCancelledInv') : t('statusRevoked');
+
   if (infoBox) {
     infoBox.innerHTML = `
-      <div><strong>Attendee:</strong> ${guest.fullName}</div>
-      <div><strong>Company:</strong> ${guest.company}</div>
-      <div><strong>Status:</strong> <span class="status-pill ${guest.invitationStatus.toLowerCase()}">${guest.invitationStatus}</span></div>
-      <div style="margin-top:0.35rem;"><strong>Unique Token:</strong> <span class="token-code">${guest.token}</span></div>
+      <div><strong>${t('attendeeLabel')}:</strong> ${guest.fullName}</div>
+      <div><strong>${t('company')}:</strong> ${guest.company}</div>
+      <div><strong>${t('invitationStatus')}:</strong> <span class="status-pill ${guest.invitationStatus.toLowerCase()}">${statusText}</span></div>
+      <div style="margin-top:0.35rem;"><strong>${t('uniqueTokenLabel')}:</strong> <span class="token-code">${guest.token}</span></div>
     `;
   }
 
@@ -879,7 +886,7 @@ function onScanReceived(result) {
         <div><strong>${t('fullName')}:</strong> ${result.guest.fullName}</div>
         <div><strong>${t('company')}:</strong> ${result.guest.company}</div>
         <div><strong>${t('firstScanAt')}</strong> ${new Date(result.checkinTime).toLocaleTimeString()}</div>
-        ${result.guest.companionLimit > 0 ? `<div style="color:#34d399; margin-top:4px;"><strong>+ ${result.guest.companionLimit} Permitted Companion(s)</strong></div>` : ''}
+        ${result.guest.companionLimit > 0 ? `<div style="color:#34d399; margin-top:4px;"><strong>+ ${result.guest.companionLimit} ${t('companions')}</strong></div>` : ''}
       </div>
     `;
   } else if (result.code === 'ALREADY_CHECKED_IN') {
@@ -923,7 +930,7 @@ function renderHistoryTable() {
   const history = getCheckinHistory(activeEvent?.id, { search, result });
 
   if (history.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-dim); padding:1.5rem;">No history records match current filters.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-dim); padding:1.5rem;">${t('noHistoryRecords')}</td></tr>`;
     return;
   }
 
@@ -931,11 +938,12 @@ function renderHistoryTable() {
     const isSuccess = h.result === 'SUCCESS';
     const isDup = h.result === 'ALREADY_CHECKED_IN';
     const pillClass = isSuccess ? 'valid' : isDup ? 'revoked' : 'cancelled';
+    const resText = isSuccess ? t('resSuccess') : isDup ? t('resAlreadyUsed') : h.result === 'INVALID_TOKEN' ? t('resInvalid') : t('resCancelled');
 
     return `
       <tr>
         <td style="font-size:0.8rem; color:var(--text-muted);">${new Date(h.timestamp).toLocaleString()}</td>
-        <td><span class="status-pill ${pillClass}">${h.result}</span></td>
+        <td><span class="status-pill ${pillClass}">${resText}</span></td>
         <td style="font-weight:600; color:#fff;">${h.guestName}</td>
         <td>${h.company}</td>
         <td><span class="token-code">${h.token}</span></td>
@@ -952,7 +960,7 @@ function renderAuditTable() {
 
   const logs = (localDB.data.auditLogs || []).slice(0, 30);
   if (logs.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-dim); padding:1rem;">No audit logs recorded yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-dim); padding:1rem;">${t('noAuditLogs')}</td></tr>`;
     return;
   }
 
@@ -974,7 +982,7 @@ function renderStaffTable() {
 
   const staff = Object.values(localDB.data.users).filter(u => u.role === 'EMPLOYEE');
   if (staff.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:1.5rem;">No staff accounts configured.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:1.5rem;">${t('noStaffAccounts')}</td></tr>`;
     return;
   }
 
@@ -982,16 +990,16 @@ function renderStaffTable() {
     <tr>
       <td style="font-weight:600; color:#fff;">${u.displayName}</td>
       <td>${u.email}</td>
-      <td><span class="role-tag employee">${u.role}</span></td>
+      <td><span class="role-tag employee">${t('roleEmployee')}</span></td>
       <td>
         <span class="status-pill ${u.active ? 'valid' : 'cancelled'}">
-          ${u.active ? 'Active' : 'Disabled'}
+          ${u.active ? t('activeLabel') : t('disabledLabel')}
         </span>
       </td>
       <td style="font-size:0.8rem; color:var(--text-muted);">${new Date(u.createdAt).toLocaleDateString()}</td>
       <td>
         <button class="btn btn-secondary btn-sm btn-toggle-staff" data-uid="${u.uid}" data-active="${u.active}">
-          ${u.active ? 'Disable' : 'Enable'}
+          ${u.active ? t('disableBtn') : t('enableBtn')}
         </button>
       </td>
     </tr>

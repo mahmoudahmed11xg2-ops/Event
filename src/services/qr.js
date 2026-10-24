@@ -1,11 +1,7 @@
-/**
- * QR Code Generator & Invitation Badge Designer
- * Generates high-res QR codes, stylish invitation badge canvases, and printable multi-pass PDFs
- */
-
 import QRCodeModule from 'qrcode';
 import { jsPDF as JsPDFModule } from 'jspdf';
 import { getEventById } from './events.js';
+import { t } from './i18n.js';
 
 function getQRCode() {
   return window.QRCode || QRCodeModule;
@@ -74,11 +70,11 @@ export async function renderInvitationBadgeCanvas(canvas, guest, event) {
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 22px system-ui, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('OFFICIAL VIP INVITATION PASS', width / 2, 65);
+  ctx.fillText(t('officialVipPass'), width / 2, 65);
 
   ctx.font = '14px system-ui, sans-serif';
   ctx.fillStyle = '#fca5a5';
-  ctx.fillText('NON-TRANSFERABLE • SINGLE ENTRY PASS', width / 2, 95);
+  ctx.fillText(t('nonTransferable'), width / 2, 95);
 
   // Event Name
   ctx.fillStyle = '#f8fafc';
@@ -106,7 +102,7 @@ export async function renderInvitationBadgeCanvas(canvas, guest, event) {
   // Guest Details
   ctx.fillStyle = '#f87171';
   ctx.font = 'bold 13px system-ui, sans-serif';
-  ctx.fillText('HONORED GUEST', width / 2, 300);
+  ctx.fillText(t('honoredGuest'), width / 2, 300);
 
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 30px system-ui, sans-serif';
@@ -124,7 +120,7 @@ export async function renderInvitationBadgeCanvas(canvas, guest, event) {
   // White background card for QR code
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
-  ctx.roundRect(qrX - 15, qrY - 15, qrSize + 30, qrSize + 30, 16);
+  ctx.roundRect(qrX - 15, qrY - 15, qrSize + 30, qrY - 15 + qrSize + 30, 16);
   ctx.fill();
 
   // Draw QR Code
@@ -150,14 +146,14 @@ export async function renderInvitationBadgeCanvas(canvas, guest, event) {
   if (guest.companionLimit > 0) {
     ctx.fillStyle = '#10b981';
     ctx.font = 'bold 13px system-ui, sans-serif';
-    ctx.fillText(`+ ${guest.companionLimit} Permitted Companion(s)`, width / 2, 755);
+    ctx.fillText(`+ ${guest.companionLimit} ${t('companions')}`, width / 2, 755);
   }
 
   // Footer instruction
   ctx.fillStyle = '#64748b';
   ctx.font = '12px system-ui, sans-serif';
-  ctx.fillText('Please present this screen or printed pass at the gate.', width / 2, 820);
-  ctx.fillText('Valid for one-time admission only. Verified securely by Cloud Firestore.', width / 2, 840);
+  ctx.fillText(t('scanInstructions'), width / 2, 820);
+  ctx.fillText(t('scanSecurityNotice'), width / 2, 840);
 }
 
 /**
