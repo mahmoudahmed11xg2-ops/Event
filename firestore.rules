@@ -12,11 +12,17 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-      return isAuthenticated() && getUserData().role == 'ADMIN' && getUserData().active == true;
+      return isAuthenticated() 
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && (getUserData().role in ['ADMIN', 'admin'])
+        && (getUserData().active == true || getUserData().status == 'active' || getUserData().status == 'true' || getUserData().status == true);
     }
     
     function isEmployee() {
-      return isAuthenticated() && (getUserData().role == 'EMPLOYEE' || getUserData().role == 'ADMIN') && getUserData().active == true;
+      return isAuthenticated() 
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && (getUserData().role in ['ADMIN', 'admin', 'EMPLOYEE', 'employee'])
+        && (getUserData().active == true || getUserData().status == 'active' || getUserData().status == 'true' || getUserData().status == true);
     }
 
     // Users Collection

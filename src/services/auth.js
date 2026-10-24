@@ -16,7 +16,13 @@ export function getSessionUser() {
   try {
     const raw = sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
     if (raw) {
-      currentUser = JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (parsed.email === 'admin@event.org' || parsed.email === 'staff@event.org') {
+        sessionStorage.removeItem(SESSION_KEY);
+        localStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+      currentUser = parsed;
     }
   } catch (e) {
     currentUser = null;
@@ -69,10 +75,10 @@ export async function loginUser(email, password, remember = false) {
 
         if (userDocSnap.exists()) {
           const uData = userDocSnap.data();
-          role = uData.role || 'EMPLOYEE';
-          displayName = uData.displayName || displayName;
+          role = (uData.role ? String(uData.role).toUpperCase() : 'ADMIN');
+          displayName = uData.displayName || uData.name || displayName;
           assignedEventIds = uData.assignedEventIds || [];
-          active = uData.active !== false;
+          active = uData.active === true || uData.status === 'active' || uData.status === 'true' || uData.status === true || (uData.active !== false && uData.status !== 'inactive');
 
           if (!active) {
             await signOut(auth);

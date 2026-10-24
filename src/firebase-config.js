@@ -47,137 +47,12 @@ let isRealFirebase = false;
 let firestoreUnsubscribers = [];
 
 export const DEFAULT_INITIAL_DATA = {
-  users: {
-    'admin-root-uid': {
-      uid: 'admin-root-uid',
-      email: 'admin@event.org',
-      displayName: 'System Administrator',
-      role: 'ADMIN',
-      active: true,
-      createdAt: new Date().toISOString()
-    },
-    'employee-01-uid': {
-      uid: 'employee-01-uid',
-      email: 'staff@event.org',
-      displayName: 'Entrance Gate 1 (Staff)',
-      role: 'EMPLOYEE',
-      active: true,
-      assignedEventIds: ['evt-summit-2026'],
-      createdAt: new Date().toISOString()
-    }
-  },
-  events: {
-    'evt-summit-2026': {
-      id: 'evt-summit-2026',
-      name: 'Global Innovation & Tech Summit 2026',
-      description: 'Annual corporate gathering for industry leaders, partners and executive keynote speakers.',
-      venue: 'Metropolitan Convention Grand Ballroom',
-      startAt: '2026-11-15T09:00',
-      endAt: '2026-11-15T18:00',
-      timeZone: 'UTC+3 (Riyadh / Dubai)',
-      status: 'Active',
-      createdAt: new Date().toISOString(),
-      createdBy: 'admin-root-uid'
-    }
-  },
-  guests: {
-    'gst-001': {
-      id: 'gst-001',
-      eventId: 'evt-summit-2026',
-      fullName: 'Dr. Sarah Al-Mansoor',
-      company: 'Apex Robotics International',
-      email: 'sarah.mansoor@apexrobotics.io',
-      phone: '+971 50 123 4567',
-      invitationStatus: 'VALID',
-      token: 'INV-A7F2-99B4-4D1E',
-      companionLimit: 1,
-      notes: 'VIP Keynote Speaker',
-      checkedInAt: null,
-      checkedInBy: null,
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString()
-    },
-    'gst-002': {
-      id: 'gst-002',
-      eventId: 'evt-summit-2026',
-      fullName: 'Marcus Vance',
-      company: 'Quantum Cybernetics',
-      email: 'm.vance@quantumcyber.com',
-      phone: '+1 415 890 2341',
-      invitationStatus: 'VALID',
-      token: 'INV-C3B8-18E2-7F0A',
-      companionLimit: 0,
-      notes: 'Investor Delegate',
-      checkedInAt: null,
-      checkedInBy: null,
-      createdAt: new Date(Date.now() - 86400000 * 2).toISOString()
-    },
-    'gst-003': {
-      id: 'gst-003',
-      eventId: 'evt-summit-2026',
-      fullName: 'Noura Khalid',
-      company: 'CloudSphere Solutions',
-      email: 'noura@cloudsphere.sa',
-      phone: '+966 54 888 9911',
-      invitationStatus: 'CHECKED_IN',
-      token: 'INV-9D4E-55A1-2C8B',
-      companionLimit: 2,
-      notes: 'Media Partner',
-      checkedInAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-      checkedInBy: 'employee-01-uid',
-      createdAt: new Date(Date.now() - 86400000 * 4).toISOString()
-    },
-    'gst-004': {
-      id: 'gst-004',
-      eventId: 'evt-summit-2026',
-      fullName: 'David Sterling',
-      company: 'Sterling Capital Advisors',
-      email: 'david@sterlingcap.com',
-      phone: '+44 20 7946 0912',
-      invitationStatus: 'CANCELLED',
-      token: 'INV-1B7A-44C9-8E3D',
-      companionLimit: 0,
-      notes: 'Cancelled attendance by email request',
-      checkedInAt: null,
-      checkedInBy: null,
-      createdAt: new Date(Date.now() - 86400000 * 5).toISOString()
-    }
-  },
-  checkins: {
-    'chk-001': {
-      id: 'chk-001',
-      eventId: 'evt-summit-2026',
-      guestId: 'gst-003',
-      guestName: 'Noura Khalid',
-      company: 'CloudSphere Solutions',
-      token: 'INV-9D4E-55A1-2C8B',
-      result: 'SUCCESS',
-      employeeUid: 'employee-01-uid',
-      employeeName: 'Entrance Gate 1 (Staff)',
-      timestamp: new Date(Date.now() - 3600000 * 2).toISOString()
-    }
-  },
-  checkinAttempts: [
-    {
-      id: 'att-001',
-      eventId: 'evt-summit-2026',
-      token: 'INV-9D4E-55A1-2C8B',
-      result: 'ALREADY_CHECKED_IN',
-      rejectionReason: 'Invitation has already been redeemed at Gate 1.',
-      employeeUid: 'employee-01-uid',
-      timestamp: new Date(Date.now() - 1800000).toISOString()
-    }
-  ],
-  auditLogs: [
-    {
-      id: 'aud-001',
-      actorUid: 'admin-root-uid',
-      action: 'EVENT_INITIALIZED',
-      targetType: 'EVENT',
-      targetId: 'evt-summit-2026',
-      timestamp: new Date(Date.now() - 86400000 * 3).toISOString(),
-      details: 'Created event Global Innovation & Tech Summit 2026'
-    }
-  ]
+  users: {},
+  events: {},
+  guests: {},
+  checkins: {},
+  checkinAttempts: [],
+  auditLogs: []
 };
 
 class LocalFirestoreEngine {
@@ -189,11 +64,19 @@ class LocalFirestoreEngine {
   load() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY_LOCAL_DB);
-      if (stored) return JSON.parse(stored);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // If it contains legacy demo data, wipe it completely clean
+        if (parsed.events && (parsed.events['evt-summit-2026'] || parsed.guests?.['gst-001'])) {
+          localStorage.removeItem(STORAGE_KEY_LOCAL_DB);
+          localStorage.removeItem('ems_active_event_id');
+          return JSON.parse(JSON.stringify(DEFAULT_INITIAL_DATA));
+        }
+        return parsed;
+      }
     } catch (e) {
-      console.warn('Using default data');
+      console.warn('Using empty initial data');
     }
-    this.save(DEFAULT_INITIAL_DATA);
     return JSON.parse(JSON.stringify(DEFAULT_INITIAL_DATA));
   }
 
@@ -471,36 +354,44 @@ function startCloudFirestoreSync() {
   try {
     // 1. Sync Events
     const unsubEvents = onSnapshot(collection(db, 'events'), (snap) => {
+      const freshEvents = {};
       snap.forEach(d => {
-        localDB.data.events[d.id] = { id: d.id, ...d.data() };
+        freshEvents[d.id] = { id: d.id, ...d.data() };
       });
+      localDB.data.events = freshEvents;
       localDB.save();
     }, (err) => console.warn('Events sync error:', err));
     firestoreUnsubscribers.push(unsubEvents);
 
     // 2. Sync Guests
     const unsubGuests = onSnapshot(collection(db, 'guests'), (snap) => {
+      const freshGuests = {};
       snap.forEach(d => {
-        localDB.data.guests[d.id] = { id: d.id, ...d.data() };
+        freshGuests[d.id] = { id: d.id, ...d.data() };
       });
+      localDB.data.guests = freshGuests;
       localDB.save();
     }, (err) => console.warn('Guests sync error:', err));
     firestoreUnsubscribers.push(unsubGuests);
 
     // 3. Sync Checkins (Live Attendance)
     const unsubCheckins = onSnapshot(collection(db, 'checkins'), (snap) => {
+      const freshCheckins = {};
       snap.forEach(d => {
-        localDB.data.checkins[d.id] = { id: d.id, ...d.data() };
+        freshCheckins[d.id] = { id: d.id, ...d.data() };
       });
+      localDB.data.checkins = freshCheckins;
       localDB.save();
     }, (err) => console.warn('Checkins sync error:', err));
     firestoreUnsubscribers.push(unsubCheckins);
 
     // 4. Sync Users
     const unsubUsers = onSnapshot(collection(db, 'users'), (snap) => {
+      const freshUsers = {};
       snap.forEach(d => {
-        localDB.data.users[d.id] = { uid: d.id, ...d.data() };
+        freshUsers[d.id] = { uid: d.id, ...d.data() };
       });
+      localDB.data.users = freshUsers;
       localDB.save();
     }, (err) => console.warn('Users sync error:', err));
     firestoreUnsubscribers.push(unsubUsers);

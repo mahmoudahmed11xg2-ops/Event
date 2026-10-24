@@ -379,6 +379,11 @@ function populateEventsDropdown() {
   const events = getAllEvents();
   const currentActiveId = getActiveEventId();
 
+  if (events.length === 0) {
+    select.innerHTML = `<option value="">${t('noActiveEventSelected')}</option>`;
+    return;
+  }
+
   select.innerHTML = events.map(e => `
     <option value="${e.id}" ${e.id === currentActiveId ? 'selected' : ''}>
       ${e.name} (${e.status})
@@ -389,7 +394,17 @@ function populateEventsDropdown() {
 // 1. DASHBOARD
 function renderDashboardStats() {
   const activeEvent = getActiveEvent();
-  if (!activeEvent) return;
+  if (!activeEvent) {
+    document.getElementById('stat-total-guests').textContent = '0';
+    document.getElementById('stat-valid-invitations').textContent = '0';
+    document.getElementById('stat-checked-in').textContent = '0';
+    document.getElementById('stat-yet-to-arrive').textContent = '0';
+    document.getElementById('stat-cancelled').textContent = '0';
+    document.getElementById('stat-attendance-rate').textContent = '0%';
+    const bar = document.getElementById('stat-progress-bar');
+    if (bar) bar.style.width = '0%';
+    return;
+  }
 
   const stats = calculateEventStats(activeEvent.id);
   document.getElementById('stat-total-guests').textContent = stats.totalGuests;
