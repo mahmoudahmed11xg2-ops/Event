@@ -245,93 +245,131 @@ class LocalFirestoreEngine {
     const querySnap = await getDocs(q);
 
     if (querySnap.empty) {
-      await setDoc(doc(collection(db, 'checkinAttempts')), {
-        eventId,
-        token,
-        result: 'INVALID_TOKEN',
-        rejectionReason: 'Token not found in Cloud Firestore',
-        employeeUid: employee?.uid || 'staff',
-        timestamp: new Date().toISOString()
-      });
-      return { success: false, code: 'INVALID_TOKEN', reason: 'Invalid or unknown QR token' };
+      const localGuest = Object.values(this.data.guests).find(g => g.token && g.token.toUpperCase() === token && g.eventId === eventId);
+      if (!localGuest) {
+        try {
+          await setDoc(doc(collection(db, 'checkinAttempts')), {
+            eventId,
+            token,
+            result: 'INVALID_TOKEN',
+            rejectionReason: 'Token not found in Cloud Firestore',
+            employeeUid: employee?.uid || 'staff',
+            timestamp: new Date().toISOString()
+          });
+        } catch (e) {}
+        return { success: false, code: 'INVALID_TOKEN', reason: 'Invalid or unknown QR token' };
+      }
     }
 
-    const guestDoc = querySnap.docs[0];
-    const guestRef = doc(db, 'guests', guestDoc.id);
+    const guestDoc = querySnap.docs ? querySnap.docs[0] : null;
+    const gData = guestDoc ? guestDoc.data() : Object.values(this.data.guests).find(g => g.token && g.token.toUpperCase() === token && g.eventId === eventId);
+    const guestId = guestDoc ? guestDoc.id : gData.id;
+    const guestRef = guestDoc ? doc(db, 'guests', guestDoc.id) : null;
 
-    return await runTransaction(db, async (transaction) => {
-      const freshSnap = await transaction.get(guestRef);
-      if (!freshSnap.exists()) {
-        throw new Error('Guest record not found');
+    // Check if already checked in via Firestore checkins or guest document
+    let isAlreadyCheckedIn = gData.invitationStatus === 'CHECKED_IN';
+    let checkinRecordTime = gData.checkedInAt || new Date().toISOString();
+
+    try {
+      const checkinQuery = query(
+        collection(db, 'checkins'),
+        where('eventId', '==', eventId),
+        where('token', '==', token)
+      );
+      const checkinSnap = await getDocs(checkinQuery);
+      if (!checkinSnap.empty) {
+        isAlreadyCheckedIn = true;
+        checkinRecordTime = checkinSnap.docs[0].data()?.timestamp || checkinRecordTime;
       }
+    } catch (e) {
+      // Query error fallback
+    }
 
-      const gData = freshSnap.data();
-
-      if (gData.invitationStatus === 'CHECKED_IN') {
-        const attemptRef = doc(collection(db, 'checkinAttempts'));
-        transaction.set(attemptRef, {
+    if (isAlreadyCheckedIn) {
+      try {
+        await setDoc(doc(collection(db, 'checkinAttempts')), {
           eventId,
-          guestId: freshSnap.id,
+          guestId,
           token,
           result: 'ALREADY_CHECKED_IN',
-          rejectionReason: `Already checked in at ${new Date(gData.checkedInAt).toLocaleTimeString()}`,
+          rejectionReason: `Already checked in at ${new Date(checkinRecordTime).toLocaleTimeString()}`,
           employeeUid: employee?.uid || 'staff',
           timestamp: new Date().toISOString()
         });
-        return { 
-          success: false, 
-          code: 'ALREADY_CHECKED_IN', 
-          reason: `Already checked in at ${new Date(gData.checkedInAt).toLocaleTimeString()}`,
-          originalCheckinTime: gData.checkedInAt,
-          guest: { fullName: gData.fullName, company: gData.company }
-        };
-      }
+      } catch (e) {}
 
-      if (gData.invitationStatus === 'CANCELLED' || gData.invitationStatus === 'REVOKED') {
-        return {
-          success: false,
-          code: 'CANCELLED_INVITATION',
-          reason: 'Invitation cancelled by administrator',
-          guest: { fullName: gData.fullName, company: gData.company }
-        };
-      }
-
-      const checkinTime = new Date().toISOString();
-
-      transaction.update(guestRef, {
-        invitationStatus: 'CHECKED_IN',
-        checkedInAt: checkinTime,
-        checkedInBy: employee?.uid || 'staff',
-        updatedAt: checkinTime
-      });
-
-      const checkinRef = doc(collection(db, 'checkins'));
-      transaction.set(checkinRef, {
-        eventId,
-        guestId: freshSnap.id,
-        guestName: gData.fullName,
-        company: gData.company,
-        token,
-        result: 'SUCCESS',
-        employeeUid: employee?.uid || 'staff',
-        employeeName: employee?.displayName || 'Staff Member',
-        timestamp: checkinTime
-      });
-
-      return {
-        success: true,
-        code: 'SUCCESS',
-        guest: {
-          id: freshSnap.id,
-          fullName: gData.fullName,
-          company: gData.company,
-          email: gData.email,
-          phone: gData.phone,
-          companionLimit: gData.companionLimit || 0
-        },
-        checkinTime
+      return { 
+        success: false, 
+        code: 'ALREADY_CHECKED_IN', 
+        reason: `Already checked in at ${new Date(checkinRecordTime).toLocaleTimeString()}`,
+        originalCheckinTime: checkinRecordTime,
+        guest: { fullName: gData.fullName, company: gData.company }
       };
-    });
+    }
+
+    if (gData.invitationStatus === 'CANCELLED' || gData.invitationStatus === 'REVOKED') {
+      return {
+        success: false,
+        code: 'CANCELLED_INVITATION',
+        reason: 'Invitation cancelled by administrator',
+        guest: { fullName: gData.fullName, company: gData.company }
+      };
+    }
+
+    const checkinTime = new Date().toISOString();
+
+    // 1. Create document in checkins collection (allowed for isEmployee() with result == 'SUCCESS')
+    const checkinRef = doc(collection(db, 'checkins'));
+    const checkinRecord = {
+      eventId,
+      guestId,
+      guestName: gData.fullName,
+      company: gData.company,
+      token,
+      result: 'SUCCESS',
+      employeeUid: employee?.uid || 'staff',
+      employeeName: employee?.displayName || 'Staff Member',
+      timestamp: checkinTime
+    };
+
+    await setDoc(checkinRef, checkinRecord);
+
+    // 2. Update guest document if permitted (admin role)
+    if (guestRef) {
+      try {
+        await updateDoc(guestRef, {
+          invitationStatus: 'CHECKED_IN',
+          checkedInAt: checkinTime,
+          checkedInBy: employee?.uid || 'staff',
+          updatedAt: checkinTime
+        });
+      } catch (e) {
+        // Ignored if employee role does not have direct write permission on guests collection
+      }
+    }
+
+    // 3. Update in-memory local state
+    if (this.data.guests[guestId]) {
+      this.data.guests[guestId].invitationStatus = 'CHECKED_IN';
+      this.data.guests[guestId].checkedInAt = checkinTime;
+      this.data.guests[guestId].checkedInBy = employee?.uid || 'staff';
+    }
+    this.data.checkins[checkinRef.id] = { id: checkinRef.id, ...checkinRecord };
+    this.save();
+
+    return {
+      success: true,
+      code: 'SUCCESS',
+      guest: {
+        id: guestId,
+        fullName: gData.fullName,
+        company: gData.company,
+        email: gData.email,
+        phone: gData.phone,
+        companionLimit: gData.companionLimit || 0
+      },
+      checkinTime
+    };
   }
 }
 

@@ -4,8 +4,15 @@
  * Integrates real Firebase Authentication & Firestore role profiles
  */
 
-import { localDB, getFirebaseInstance } from '../firebase-config.js';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { localDB, getFirebaseInstance, BUILTIN_FIREBASE_CONFIG } from '../firebase-config.js';
+import { initializeApp as initializeSecondaryApp, deleteApp as deleteSecondaryApp } from 'firebase/app';
+import { 
+  signInWithEmailAndPassword, 
+  signOut, 
+  getAuth as getSecondaryAuth,
+  createUserWithEmailAndPassword as secondaryCreateUser,
+  signOut as secondarySignOut
+} from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 let currentUser = null;
@@ -188,34 +195,82 @@ export async function logoutUser() {
   setSessionUser(null);
 }
 
-export async function createEmployeeAccount(displayName, email, assignedEvents = []) {
-  const cleanEmail = email.trim().toLowerCase();
-  const existing = Object.values(localDB.data.users).find(u => u.email.toLowerCase() === cleanEmail);
-  if (existing) {
-    throw new Error('A staff user with this email already exists.');
+export async function createEmployeeAccount(displayName, email, password, assignedEvents = []) {
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const cleanName = (displayName || '').trim();
+  const cleanPassword = (password || '').trim();
+
+  if (!cleanName) {
+    throw new Error('يرجى إدخال اسم الموظف.');
+  }
+  if (!cleanEmail || !cleanEmail.includes('@')) {
+    throw new Error('يرجى إدخال بريد إلكتروني صالح للموظف.');
+  }
+  if (!cleanPassword || cleanPassword.length < 6) {
+    throw new Error('كلمة المرور يجب أن لا تقل عن 6 خانات.');
   }
 
-  const uid = 'emp-' + Date.now();
+  const existing = Object.values(localDB.data.users).find(u => u.email.toLowerCase() === cleanEmail);
+  if (existing) {
+    throw new Error('يوجد حساب موظف مسجل مسبقاً بهذا البريد الإلكتروني.');
+  }
+
+  const { isReal, db } = getFirebaseInstance();
+  let uid = 'emp-' + Date.now();
+
+  // Create Firebase Auth user using an isolated secondary App instance
+  // This is essential so the current administrator session is NOT logged out
+  if (isReal && BUILTIN_FIREBASE_CONFIG && BUILTIN_FIREBASE_CONFIG.apiKey) {
+    const secondaryAppName = `SecondaryApp-${Date.now()}`;
+    let secondaryApp = null;
+    try {
+      secondaryApp = initializeSecondaryApp(BUILTIN_FIREBASE_CONFIG, secondaryAppName);
+      const secondaryAuth = getSecondaryAuth(secondaryApp);
+      const userCred = await secondaryCreateUser(secondaryAuth, cleanEmail, cleanPassword);
+      uid = userCred.user.uid;
+      await secondarySignOut(secondaryAuth);
+    } catch (authErr) {
+      console.error('Firebase Auth staff user creation error:', authErr);
+      if (authErr.code === 'auth/email-already-in-use') {
+        throw new Error('هذا البريد الإلكتروني مسجل بالفعل في Firebase.');
+      } else if (authErr.code === 'auth/weak-password') {
+        throw new Error('كلمة المرور ضعيفة، يجب أن تحتوي على 6 خانات على الأقل.');
+      } else if (authErr.code === 'auth/invalid-email') {
+        throw new Error('صيغة البريد الإلكتروني غير صحيحة.');
+      }
+      throw new Error(authErr.message || 'فشل إنشاء حساب الموظف في Firebase Authentication.');
+    } finally {
+      if (secondaryApp) {
+        try {
+          await deleteSecondaryApp(secondaryApp);
+        } catch (delErr) {
+          console.warn('Secondary app cleanup error:', delErr);
+        }
+      }
+    }
+  }
+
   const newStaff = {
     uid,
     email: cleanEmail,
-    displayName: displayName.trim(),
+    displayName: cleanName,
     role: 'EMPLOYEE',
     active: true,
-    assignedEventIds: assignedEvents,
+    status: 'active',
+    assignedEventIds: assignedEvents || [],
     createdAt: new Date().toISOString()
   };
 
-  localDB.data.users[uid] = newStaff;
-
-  const { isReal, db } = getFirebaseInstance();
+  // Write employee role document to Cloud Firestore: /users/{uid}
   if (isReal && db) {
     try {
       await setDoc(doc(db, 'users', uid), newStaff);
     } catch (e) {
-      console.warn('Error saving employee to Cloud Firestore:', e);
+      console.warn('Error saving employee role to Cloud Firestore:', e);
     }
   }
+
+  localDB.data.users[uid] = newStaff;
 
   localDB.data.auditLogs.unshift({
     id: 'aud-' + Date.now(),
@@ -224,9 +279,10 @@ export async function createEmployeeAccount(displayName, email, assignedEvents =
     targetType: 'USER',
     targetId: uid,
     timestamp: new Date().toISOString(),
-    details: `Created employee ${displayName} (${cleanEmail})`
+    details: `Created staff member ${cleanName} (${cleanEmail}) with Firebase Auth & Firestore role`
   });
   localDB.save();
+
   return newStaff;
 }
 

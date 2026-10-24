@@ -265,17 +265,47 @@ function setupEventListeners() {
   // Add Staff Form Submit
   const formStaff = document.getElementById('form-staff');
   if (formStaff) {
-    formStaff.addEventListener('submit', (e) => {
+    const btnTogglePw = document.getElementById('btn-toggle-staff-pw');
+    const inputPw = document.getElementById('staff-password');
+    if (btnTogglePw && inputPw) {
+      btnTogglePw.addEventListener('click', () => {
+        if (inputPw.type === 'password') {
+          inputPw.type = 'text';
+          btnTogglePw.textContent = '🔒';
+        } else {
+          inputPw.type = 'password';
+          btnTogglePw.textContent = '👁️';
+        }
+      });
+    }
+
+    formStaff.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const submitBtn = document.getElementById('btn-submit-staff') || formStaff.querySelector('button[type="submit"]');
+      const originalText = submitBtn ? submitBtn.textContent : '';
+
       const name = document.getElementById('staff-name').value;
       const email = document.getElementById('staff-email').value;
+      const password = document.getElementById('staff-password').value;
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = t('creatingStaff') || 'جاري إنشاء الحساب في فايربيس...';
+      }
+
       try {
-        createEmployeeAccount(name, email);
+        await createEmployeeAccount(name, email, password);
         closeAllModals();
         formStaff.reset();
         renderStaffTable();
+        alert(t('staffCreatedSuccess') || 'تم إنشاء حساب الموظف وربطه في Firebase بنجاح!');
       } catch (err) {
-        alert(err.message);
+        alert(err.message || 'حدث خطأ أثناء إنشاء حساب الموظف.');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        }
       }
     });
   }
@@ -854,11 +884,26 @@ function setupScannerHandlers() {
   const manualBtn = document.getElementById('manual-token-btn');
   const manualInput = document.getElementById('manual-token-input');
   if (manualBtn && manualInput) {
-    manualBtn.addEventListener('click', () => {
+    const runManualVerification = async () => {
       const token = manualInput.value.trim();
       if (token) {
-        handleTokenVerification(token, onScanReceived);
-        manualInput.value = '';
+        manualBtn.disabled = true;
+        manualBtn.textContent = '...';
+        try {
+          await handleTokenVerification(token, onScanReceived);
+        } finally {
+          manualBtn.disabled = false;
+          manualBtn.textContent = t('validateTokenBtn') || 'Verify';
+          manualInput.value = '';
+        }
+      }
+    };
+
+    manualBtn.addEventListener('click', runManualVerification);
+    manualInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        runManualVerification();
       }
     });
   }
@@ -866,43 +911,64 @@ function setupScannerHandlers() {
 
 function onScanReceived(result) {
   const container = document.getElementById('scan-result-container');
-  if (!container) return;
+  if (!container || !result) return;
 
   container.style.display = 'block';
 
-  if (result.success) {
+  if (result.success && result.guest) {
     employeeTodayScanCount++;
-    document.getElementById('staff-scan-count').textContent = employeeTodayScanCount;
+    const staffScanEl = document.getElementById('staff-scan-count');
+    if (staffScanEl) staffScanEl.textContent = employeeTodayScanCount;
 
     container.className = 'result-banner success';
     container.innerHTML = `
-      <h3>✓ ${t('entryApproved')}</h3>
-      <p style="color:#d1fae5; font-size:0.9rem;">${t('checkinSuccessMsg')}</p>
+      <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">✅</div>
+      <h3 style="margin: 0 0 0.5rem 0;">${t('entryApproved')}</h3>
+      <p style="color:#d1fae5; font-size:0.95rem; margin-bottom: 0.75rem;">${t('checkinSuccessMsg')}</p>
       <div class="guest-result-details">
         <div><strong>${t('fullName')}:</strong> ${result.guest.fullName}</div>
         <div><strong>${t('company')}:</strong> ${result.guest.company}</div>
         <div><strong>${t('firstScanAt')}</strong> ${new Date(result.checkinTime).toLocaleTimeString()}</div>
         ${result.guest.companionLimit > 0 ? `<div style="color:#34d399; margin-top:4px;"><strong>+ ${result.guest.companionLimit} ${t('companions')}</strong></div>` : ''}
       </div>
+      <button class="btn btn-secondary btn-sm" id="btn-banner-next-guest" style="margin-top: 0.75rem; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff;">
+        ${t('nextGuestBtn')} ➔
+      </button>
     `;
   } else if (result.code === 'ALREADY_CHECKED_IN') {
     container.className = 'result-banner duplicate';
     container.innerHTML = `
-      <h3>⚠️ ${t('alreadyCheckedIn')}</h3>
-      <p style="color:#fde68a; font-size:0.9rem;">${result.reason}</p>
+      <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">⚠️</div>
+      <h3 style="margin: 0 0 0.5rem 0;">${t('alreadyCheckedIn')}</h3>
+      <p style="color:#fde68a; font-size:0.95rem; margin-bottom: 0.75rem;">${result.reason}</p>
       ${result.guest ? `
         <div class="guest-result-details">
           <div><strong>${t('fullName')}:</strong> ${result.guest.fullName}</div>
           <div><strong>${t('company')}:</strong> ${result.guest.company}</div>
         </div>
       ` : ''}
+      <button class="btn btn-secondary btn-sm" id="btn-banner-next-guest" style="margin-top: 0.75rem; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff;">
+        ${t('nextGuestBtn')} ➔
+      </button>
     `;
   } else {
     container.className = 'result-banner invalid';
     container.innerHTML = `
-      <h3>✕ ${result.code === 'CANCELLED_INVITATION' ? t('invitationRevoked') : t('invalidInvitation')}</h3>
-      <p style="color:#fecaca; font-size:0.9rem;">${result.reason || 'Entry forbidden'}</p>
+      <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">❌</div>
+      <h3 style="margin: 0 0 0.5rem 0;">${result.code === 'CANCELLED_INVITATION' ? t('invitationRevoked') : t('invalidInvitation')}</h3>
+      <p style="color:#fecaca; font-size:0.95rem; margin-bottom: 0.75rem;">${result.reason || 'Entry forbidden'}</p>
+      <button class="btn btn-secondary btn-sm" id="btn-banner-next-guest" style="margin-top: 0.75rem; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff;">
+        ${t('nextGuestBtn')} ➔
+      </button>
     `;
+  }
+
+  const bannerNext = document.getElementById('btn-banner-next-guest');
+  if (bannerNext) {
+    bannerNext.addEventListener('click', () => {
+      resetScannerDebounce();
+      container.style.display = 'none';
+    });
   }
 }
 

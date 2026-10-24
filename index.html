@@ -703,13 +703,25 @@
               <label for="staff-email" data-i18n="staffEmailLabel">Staff Email Address *</label>
               <input type="email" id="staff-email" class="form-control" required placeholder="gate2@event.org" />
             </div>
+            <div class="form-group">
+              <label for="staff-password" data-i18n="staffPasswordLabel">Account Password *</label>
+              <div style="position: relative;">
+                <input type="password" id="staff-password" class="form-control" required minlength="6" placeholder="••••••••" style="padding-inline-end: 2.75rem;" />
+                <button type="button" id="btn-toggle-staff-pw" style="position: absolute; inset-inline-end: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.9rem; padding: 4px 6px;">
+                  👁️
+                </button>
+              </div>
+              <small style="color: var(--text-dim); font-size: 0.75rem; margin-top: 0.25rem; display: block;" data-i18n="staffPasswordHelp">
+                At least 6 characters. The employee will use this password to sign into the check-in terminal.
+              </small>
+            </div>
             <p style="font-size: 0.8rem; color: var(--text-dim); margin-top: 0.5rem;" data-i18n="staffNotice">
               The staff account will have permissions restricted to scanning QR codes and checking in attendees. Administrative areas remain strictly protected.
             </p>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary close-modal-btn" data-i18n="cancel">Cancel</button>
-            <button type="submit" class="btn btn-primary" data-i18n="createStaffTitle">Create Staff Member</button>
+            <button type="submit" id="btn-submit-staff" class="btn btn-primary" data-i18n="createStaffTitle">Create Staff Member</button>
           </div>
         </form>
       </div>

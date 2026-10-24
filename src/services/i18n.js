@@ -188,6 +188,11 @@ export const translations = {
     createStaffTitle: "Create Check-in Staff Account",
     staffNameLabel: "Staff Member Name *",
     staffEmailLabel: "Staff Email Address *",
+    staffPasswordLabel: "Account Password *",
+    staffPasswordPlaceholder: "••••••••",
+    staffPasswordHelp: "At least 6 characters. The employee will use this password to sign into the check-in terminal.",
+    creatingStaff: "Creating account in Firebase...",
+    staffCreatedSuccess: "Staff member created and synchronized with Firebase successfully!",
     staffNotice: "The staff account will have permissions restricted to scanning QR codes and checking in attendees. Administrative areas remain strictly protected.",
     
     // Firebase Setup
@@ -395,6 +400,11 @@ export const translations = {
     createStaffTitle: "إنشاء حساب موظف استقبال جديد",
     staffNameLabel: "اسم الموظف أو البوابة *",
     staffEmailLabel: "البريد الإلكتروني للموظف *",
+    staffPasswordLabel: "كلمة المرور للموظف *",
+    staffPasswordPlaceholder: "••••••••",
+    staffPasswordHelp: "لا تقل عن 6 خانات. سيستخدمها الموظف لتسجيل الدخول إلى محطة التحقق ومسح الـ QR.",
+    creatingStaff: "جاري إنشاء الحساب والمزامنة مع فايربيس...",
+    staffCreatedSuccess: "تم إنشاء حساب الموظف وربطه في Firebase بنجاح!",
     staffNotice: "يملك حساب الموظف صلاحية مسح رموز QR وتسجيل الحضور فقط عند المداخل دون الوصول إلى الإعدادات الإدارية.",
     
     // Firebase Setup

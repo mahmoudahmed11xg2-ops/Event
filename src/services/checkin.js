@@ -102,6 +102,35 @@ export function playErrorSound() {
   }
 }
 
+let isProcessing = false;
+let autoResumeTimeout = null;
+
+export function pauseCameraScanner() {
+  isProcessing = true;
+  try {
+    if (html5QrCode && typeof html5QrCode.pause === 'function') {
+      html5QrCode.pause(true);
+    }
+  } catch (e) {
+    // Non-blocking fallback
+  }
+}
+
+export function resumeCameraScanner() {
+  if (autoResumeTimeout) {
+    clearTimeout(autoResumeTimeout);
+    autoResumeTimeout = null;
+  }
+  isProcessing = false;
+  try {
+    if (html5QrCode && typeof html5QrCode.resume === 'function') {
+      html5QrCode.resume();
+    }
+  } catch (e) {
+    // Non-blocking fallback
+  }
+}
+
 /**
  * Initialize and start the camera scanner on a DOM element
  */
@@ -109,6 +138,8 @@ export async function startCameraScanner(elementId, onScanResult, onError) {
   if (isScanning) {
     return;
   }
+
+  isProcessing = false;
 
   try {
     if (!html5QrCode) {
@@ -126,20 +157,39 @@ export async function startCameraScanner(elementId, onScanResult, onError) {
     await html5QrCode.start(
       { facingMode: 'environment' },
       config,
-      (decodedText) => {
+      async (decodedText) => {
+        // Drop frames if already processing a scan
+        if (isProcessing) {
+          return;
+        }
+
         const now = Date.now();
-        // Prevent duplicate frames scanning within 2.5 seconds
-        if (decodedText === lastScannedToken && (now - lastScanTimestamp) < 2500) {
+        // Prevent duplicate frames scanning within 3.5 seconds
+        if (decodedText === lastScannedToken && (now - lastScanTimestamp) < 3500) {
           return;
         }
 
         lastScannedToken = decodedText;
         lastScanTimestamp = now;
+        isProcessing = true;
 
-        handleTokenVerification(decodedText, onScanResult);
+        // Temporarily pause camera stream so consecutive frames do not trigger
+        pauseCameraScanner();
+
+        try {
+          await handleTokenVerification(decodedText, onScanResult);
+        } catch (err) {
+          console.error('Scan verification error:', err);
+        } finally {
+          // Auto resume after 3.5 seconds so user can scan next guest
+          if (autoResumeTimeout) clearTimeout(autoResumeTimeout);
+          autoResumeTimeout = setTimeout(() => {
+            resumeCameraScanner();
+          }, 3500);
+        }
       },
       (errorMessage) => {
-        // Scanning in-progress frames error - usually ignorable
+        // Scanning in-progress frames - non-critical
       }
     );
 
@@ -156,6 +206,12 @@ export async function startCameraScanner(elementId, onScanResult, onError) {
  * Stop camera stream
  */
 export async function stopCameraScanner() {
+  if (autoResumeTimeout) {
+    clearTimeout(autoResumeTimeout);
+    autoResumeTimeout = null;
+  }
+  isProcessing = false;
+
   if (html5QrCode && isScanning) {
     try {
       await html5QrCode.stop();
@@ -172,8 +228,9 @@ export function isCameraActive() {
 
 /**
  * Core validation & atomic single-use check-in
+ * Awaits atomicCheckin from localDB / Cloud Firestore
  */
-export function handleTokenVerification(tokenText, onResult) {
+export async function handleTokenVerification(tokenText, onResult) {
   const activeEvent = getActiveEvent();
   const employee = getSessionUser();
 
@@ -188,10 +245,16 @@ export function handleTokenVerification(tokenText, onResult) {
     return res;
   }
 
-  // Atomic database transaction
-  const result = localDB.atomicCheckin(tokenText, activeEvent.id, employee);
+  // Sanitize token: remove slashes/URLs if QR contains a deep link
+  let cleanToken = String(tokenText || '').trim();
+  if (cleanToken.includes('/')) {
+    cleanToken = cleanToken.split('/').pop().split('?')[0].split('#').pop().trim();
+  }
 
-  if (result.success) {
+  // Atomic database transaction with full async await
+  const result = await localDB.atomicCheckin(cleanToken, activeEvent.id, employee);
+
+  if (result && result.success) {
     playSuccessSound();
   } else {
     playErrorSound();
@@ -210,4 +273,5 @@ export function handleTokenVerification(tokenText, onResult) {
 export function resetScannerDebounce() {
   lastScannedToken = null;
   lastScanTimestamp = 0;
+  resumeCameraScanner();
 }
