@@ -17,7 +17,27 @@ export function calculateEventStats(eventId) {
     };
   }
 
-  const allGuests = Object.values(localDB.data.guests).filter(g => g.eventId === eventId);
+  if (localDB.applyCheckinsToGuests) {
+    localDB.applyCheckinsToGuests();
+  }
+
+  const checkins = Object.values(localDB.data.checkins || {}).filter(c => (!eventId || c.eventId === eventId) && c && c.result === 'SUCCESS');
+  const checkedInTokens = new Set(checkins.map(c => c.token ? String(c.token).trim().toUpperCase() : ''));
+  const checkedInGuestIds = new Set(checkins.map(c => c.guestId ? String(c.guestId).trim() : ''));
+
+  const allGuests = Object.values(localDB.data.guests).filter(g => g && g.eventId === eventId).map(g => {
+    const isCancelled = g.invitationStatus === 'CANCELLED' || g.invitationStatus === 'REVOKED';
+    if (isCancelled) return g;
+
+    const cleanToken = g.token ? String(g.token).trim().toUpperCase() : '';
+    const hasCheckin = g.invitationStatus === 'CHECKED_IN' || 
+                       checkedInGuestIds.has(String(g.id).trim()) || 
+                       (cleanToken && checkedInTokens.has(cleanToken));
+    if (hasCheckin) {
+      return { ...g, invitationStatus: 'CHECKED_IN' };
+    }
+    return g;
+  });
   
   const totalGuests = allGuests.length;
   const checkedIn = allGuests.filter(g => g.invitationStatus === 'CHECKED_IN').length;

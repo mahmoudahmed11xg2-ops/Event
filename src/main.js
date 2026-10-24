@@ -920,6 +920,10 @@ function onScanReceived(result) {
     const staffScanEl = document.getElementById('staff-scan-count');
     if (staffScanEl) staffScanEl.textContent = employeeTodayScanCount;
 
+    renderDashboardStats();
+    renderLiveCheckinTable();
+    renderGuestsTable();
+
     container.className = 'result-banner success';
     container.innerHTML = `
       <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">✅</div>

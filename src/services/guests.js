@@ -7,7 +7,34 @@ import { getSessionUser } from './auth.js';
 import { doc, setDoc, updateDoc } from 'firebase/firestore';
 
 export function getGuestsForEvent(eventId, { search = '', status = 'ALL' } = {}) {
-  let list = Object.values(localDB.data.guests).filter(g => g.eventId === eventId);
+  if (localDB.applyCheckinsToGuests) {
+    localDB.applyCheckinsToGuests();
+  }
+
+  const checkins = Object.values(localDB.data.checkins || {}).filter(c => c && c.result === 'SUCCESS');
+  const checkedInTokens = new Set(checkins.map(c => c.token ? String(c.token).trim().toUpperCase() : ''));
+  const checkedInGuestIds = new Set(checkins.map(c => c.guestId ? String(c.guestId).trim() : ''));
+
+  let list = Object.values(localDB.data.guests).filter(g => g && g.eventId === eventId).map(g => {
+    const isCancelled = g.invitationStatus === 'CANCELLED' || g.invitationStatus === 'REVOKED';
+    if (isCancelled) return g;
+
+    const cleanToken = g.token ? String(g.token).trim().toUpperCase() : '';
+    const hasCheckin = g.invitationStatus === 'CHECKED_IN' || 
+                       checkedInGuestIds.has(String(g.id).trim()) || 
+                       (cleanToken && checkedInTokens.has(cleanToken));
+
+    if (hasCheckin) {
+      const match = checkins.find(c => c.guestId === g.id || (cleanToken && c.token && String(c.token).trim().toUpperCase() === cleanToken));
+      return {
+        ...g,
+        invitationStatus: 'CHECKED_IN',
+        checkedInAt: g.checkedInAt || match?.timestamp || new Date().toISOString(),
+        checkedInBy: g.checkedInBy || match?.employeeName || match?.employeeUid || 'Staff'
+      };
+    }
+    return g;
+  });
 
   if (status !== 'ALL') {
     list = list.filter(g => g.invitationStatus === status);

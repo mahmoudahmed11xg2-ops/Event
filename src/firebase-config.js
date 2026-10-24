@@ -72,7 +72,9 @@ class LocalFirestoreEngine {
           localStorage.removeItem('ems_active_event_id');
           return JSON.parse(JSON.stringify(DEFAULT_INITIAL_DATA));
         }
-        return parsed;
+        this.data = parsed;
+        this.applyCheckinsToGuests();
+        return this.data;
       }
     } catch (e) {
       console.warn('Using empty initial data');
@@ -80,8 +82,35 @@ class LocalFirestoreEngine {
     return JSON.parse(JSON.stringify(DEFAULT_INITIAL_DATA));
   }
 
+  applyCheckinsToGuests() {
+    if (!this.data || !this.data.guests) return;
+    const checkins = Object.values(this.data.checkins || {}).filter(c => c && c.result === 'SUCCESS');
+    if (checkins.length === 0) return;
+
+    const byToken = new Map();
+    const byGuestId = new Map();
+    checkins.forEach(c => {
+      if (c.token) byToken.set(String(c.token).trim().toUpperCase(), c);
+      if (c.guestId) byGuestId.set(String(c.guestId).trim(), c);
+    });
+
+    Object.values(this.data.guests).forEach(g => {
+      if (!g) return;
+      if (g.invitationStatus === 'CANCELLED' || g.invitationStatus === 'REVOKED') return;
+
+      const cleanToken = g.token ? String(g.token).trim().toUpperCase() : '';
+      const match = (g.id ? byGuestId.get(String(g.id).trim()) : null) || (cleanToken ? byToken.get(cleanToken) : null);
+      if (match) {
+        g.invitationStatus = 'CHECKED_IN';
+        g.checkedInAt = g.checkedInAt || match.timestamp || new Date().toISOString();
+        g.checkedInBy = g.checkedInBy || match.employeeName || match.employeeUid || 'Staff';
+      }
+    });
+  }
+
   save(data = this.data) {
     this.data = data;
+    this.applyCheckinsToGuests();
     try {
       localStorage.setItem(STORAGE_KEY_LOCAL_DB, JSON.stringify(this.data));
     } catch (e) {
@@ -349,12 +378,17 @@ class LocalFirestoreEngine {
     }
 
     // 3. Update in-memory local state
-    if (this.data.guests[guestId]) {
-      this.data.guests[guestId].invitationStatus = 'CHECKED_IN';
-      this.data.guests[guestId].checkedInAt = checkinTime;
-      this.data.guests[guestId].checkedInBy = employee?.uid || 'staff';
-    }
     this.data.checkins[checkinRef.id] = { id: checkinRef.id, ...checkinRecord };
+
+    let foundGuest = this.data.guests[guestId];
+    if (!foundGuest) {
+      foundGuest = Object.values(this.data.guests).find(g => g.token && g.token.toUpperCase() === token);
+    }
+    if (foundGuest) {
+      foundGuest.invitationStatus = 'CHECKED_IN';
+      foundGuest.checkedInAt = checkinTime;
+      foundGuest.checkedInBy = employee?.displayName || employee?.uid || 'staff';
+    }
     this.save();
 
     return {
@@ -408,17 +442,19 @@ export function startCloudFirestoreSync() {
         freshGuests[d.id] = { id: d.id, ...d.data() };
       });
       localDB.data.guests = freshGuests;
+      localDB.applyCheckinsToGuests();
       localDB.save();
     }, (err) => console.warn('Guests sync error:', err));
     firestoreUnsubscribers.push(unsubGuests);
 
     // 3. Sync Checkins (Live Attendance)
     const unsubCheckins = onSnapshot(collection(db, 'checkins'), (snap) => {
-      const freshCheckins = {};
+      const freshCheckins = { ...localDB.data.checkins };
       snap.forEach(d => {
         freshCheckins[d.id] = { id: d.id, ...d.data() };
       });
       localDB.data.checkins = freshCheckins;
+      localDB.applyCheckinsToGuests();
       localDB.save();
     }, (err) => console.warn('Checkins sync error:', err));
     firestoreUnsubscribers.push(unsubCheckins);

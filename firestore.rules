@@ -27,9 +27,11 @@ service cloud.firestore {
 
     // Users Collection
     match /users/{userId} {
-      // Users can read their own profile, Admins can read/write all
+      // Users can read their own profile, Admins can read all
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow write: if isAdmin();
+      // Users can create their initial profile upon first sign-in, Admins can create/edit all
+      allow create: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow update, delete: if isAdmin();
     }
 
     // Events Collection
@@ -41,8 +43,12 @@ service cloud.firestore {
     // Guests Collection
     match /guests/{guestId} {
       allow read: if isAuthenticated();
-      // Only Admin can create, edit, or cancel guests
-      allow create, update, delete: if isAdmin();
+      // Admin can create/delete; Admin OR Employee checking in attendee can update status to CHECKED_IN
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isEmployee() 
+        && request.resource.data.invitationStatus == 'CHECKED_IN'
+      );
     }
 
     // Invitation Tokens (Protected reference)
@@ -55,14 +61,14 @@ service cloud.firestore {
     match /checkins/{checkinId} {
       allow read: if isAuthenticated();
       // Employees and Admins can create check-in records during verified admission
-      allow create: if isEmployee() && request.resource.data.result == 'SUCCESS';
+      allow create: if (isEmployee() || isAdmin()) && request.resource.data.result == 'SUCCESS';
       allow update, delete: if isAdmin();
     }
 
     // Checkin Attempts (Auditing failed, duplicate, and invalid scans)
     match /checkinAttempts/{attemptId} {
       allow read: if isAdmin();
-      allow create: if isEmployee();
+      allow create: if isAuthenticated();
       allow update, delete: if false; // Immutable audit log
     }
 
