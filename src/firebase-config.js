@@ -345,7 +345,7 @@ export function generateSecureToken() {
 }
 
 // Attach Real-time onSnapshot listeners to Cloud Firestore
-function startCloudFirestoreSync() {
+export function startCloudFirestoreSync() {
   if (!db) return;
 
   firestoreUnsubscribers.forEach(u => { try { u(); } catch(e){} });
@@ -409,8 +409,18 @@ export function initFirebase() {
     auth = getAuth(app);
     db = getFirestore(app);
     isRealFirebase = true;
-    startCloudFirestoreSync();
-    updateStatusBadgeInDOM(true, BUILTIN_FIREBASE_CONFIG.projectId);
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        startCloudFirestoreSync();
+        updateStatusBadgeInDOM(true, BUILTIN_FIREBASE_CONFIG.projectId);
+      } else {
+        firestoreUnsubscribers.forEach(u => { try { u(); } catch(e){} });
+        firestoreUnsubscribers = [];
+        updateStatusBadgeInDOM(true, BUILTIN_FIREBASE_CONFIG.projectId);
+      }
+    });
+
     return { app, auth, db, isReal: true };
   } catch (e) {
     console.error('Failed to initialize Firebase with builtin config:', e);

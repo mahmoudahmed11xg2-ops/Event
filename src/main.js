@@ -177,12 +177,19 @@ function setupEventListeners() {
   // Add Guest Form Submit
   const formGuest = document.getElementById('form-guest');
   if (formGuest) {
-    formGuest.addEventListener('submit', (e) => {
+    formGuest.addEventListener('submit', async (e) => {
       e.preventDefault();
       const activeEvent = getActiveEvent();
       if (!activeEvent) {
-        alert('Please select or create an active event first.');
+        alert('يرجى إنشاء فعالية واختيارها أولاً قبل إضافة الضيوف.');
         return;
+      }
+
+      const submitBtn = formGuest.querySelector('button[type="submit"]');
+      const originalText = submitBtn ? submitBtn.textContent : '';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'جاري الحفظ على السيرفر...';
       }
 
       const fullName = document.getElementById('guest-name').value;
@@ -193,7 +200,7 @@ function setupEventListeners() {
       const notes = document.getElementById('guest-notes').value;
 
       try {
-        addGuest({
+        await addGuest({
           eventId: activeEvent.id,
           fullName,
           company,
@@ -207,7 +214,12 @@ function setupEventListeners() {
         renderGuestsTable();
         renderDashboardStats();
       } catch (err) {
-        alert(err.message);
+        alert(err.message || 'حدث خطأ أثناء حفظ الضيف.');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        }
       }
     });
   }
@@ -215,8 +227,15 @@ function setupEventListeners() {
   // Create Event Form Submit
   const formEvent = document.getElementById('form-event');
   if (formEvent) {
-    formEvent.addEventListener('submit', (e) => {
+    formEvent.addEventListener('submit', async (e) => {
       e.preventDefault();
+      const submitBtn = formEvent.querySelector('button[type="submit"]');
+      const originalText = submitBtn ? submitBtn.textContent : '';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'جاري الحفظ على السيرفر...';
+      }
+
       const name = document.getElementById('event-name').value;
       const venue = document.getElementById('event-venue').value;
       const startAt = document.getElementById('event-start').value;
@@ -226,14 +245,19 @@ function setupEventListeners() {
       const description = document.getElementById('event-desc').value;
 
       try {
-        createEvent({ name, venue, startAt, endAt, timeZone, status, description });
+        await createEvent({ name, venue, startAt, endAt, timeZone, status, description });
         closeAllModals();
         formEvent.reset();
         populateEventsDropdown();
         renderEventsTable();
         renderDashboardStats();
       } catch (err) {
-        alert(err.message);
+        alert(err.message || 'حدث خطأ أثناء حفظ الفعالية.');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        }
       }
     });
   }

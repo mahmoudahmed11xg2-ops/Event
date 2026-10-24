@@ -31,24 +31,14 @@ export function getGuestById(id) {
   return localDB.data.guests[id] || null;
 }
 
-export function addGuest({ eventId, fullName, company, email, phone, companionLimit = 0, notes = '' }) {
+export async function addGuest({ eventId, fullName, company, email, phone, companionLimit = 0, notes = '' }) {
   const cleanName = (fullName || '').trim();
   const cleanCompany = (company || '').trim();
   const cleanEmail = (email || '').trim().toLowerCase();
   const cleanPhone = (phone || '').trim();
 
-  if (!cleanName) throw new Error('Guest full name is required.');
-  if (!cleanCompany) throw new Error('Company / Organization is required.');
-
-  // Check duplicate email in this event if provided
-  if (cleanEmail) {
-    const dup = Object.values(localDB.data.guests).find(g => 
-      g.eventId === eventId && g.email && g.email.toLowerCase() === cleanEmail
-    );
-    if (dup) {
-      console.warn('Duplicate email detected for event:', cleanEmail);
-    }
-  }
+  if (!cleanName) throw new Error('يرجى إدخال اسم الضيف.');
+  if (!cleanCompany) throw new Error('يرجى إدخال الشركة / الجهة.');
 
   const id = 'gst-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
   const token = generateSecureToken();
@@ -59,8 +49,8 @@ export function addGuest({ eventId, fullName, company, email, phone, companionLi
     eventId,
     fullName: cleanName,
     company: cleanCompany,
-    email: cleanEmail,
-    phone: cleanPhone,
+    email: cleanEmail || '',
+    phone: cleanPhone || '',
     invitationStatus: 'VALID',
     token,
     companionLimit: parseInt(companionLimit, 10) || 0,
@@ -69,6 +59,23 @@ export function addGuest({ eventId, fullName, company, email, phone, companionLi
     checkedInBy: null,
     createdAt: new Date().toISOString()
   };
+
+  // Cloud Firestore Sync
+  const { isReal, db, auth } = getFirebaseInstance();
+  if (isReal && db) {
+    if (!auth || !auth.currentUser) {
+      throw new Error('يجب تسجيل الدخول أولاً لتتمكن من إضافة الضيوف إلى سيرفر Firebase.');
+    }
+    try {
+      await setDoc(doc(db, 'guests', id), newGuest);
+    } catch (e) {
+      console.error('Firestore guest sync error:', e);
+      if (e.code === 'permission-denied') {
+        throw new Error('تم رفض إضافة الضيف من Firebase (Permission Denied). يرجى التأكد من قواعد Firestore Rules وصلاحيات الأدمن.');
+      }
+      throw new Error('فشل حفظ الضيف في Firebase: ' + (e.message || e));
+    }
+  }
 
   localDB.data.guests[id] = newGuest;
 
@@ -84,25 +91,30 @@ export function addGuest({ eventId, fullName, company, email, phone, companionLi
   });
 
   localDB.save();
-
-  // Cloud Firestore Sync
-  const { isReal, db } = getFirebaseInstance();
-  if (isReal && db) {
-    try {
-      setDoc(doc(db, 'guests', id), newGuest).catch(e => console.warn('Firestore guest sync error:', e));
-    } catch (e) {
-      console.warn('Firestore guest sync error:', e);
-    }
-  }
-
   return newGuest;
 }
 
-export function updateGuest(id, updates) {
+export async function updateGuest(id, updates) {
   const guest = localDB.data.guests[id];
   if (!guest) throw new Error('Guest not found.');
 
-  Object.assign(guest, updates, { updatedAt: new Date().toISOString() });
+  const cleanUpdates = { ...updates, updatedAt: new Date().toISOString() };
+  Object.assign(guest, cleanUpdates);
+
+  // Cloud Firestore Sync
+  const { isReal, db, auth } = getFirebaseInstance();
+  if (isReal && db) {
+    if (!auth || !auth.currentUser) throw new Error('يجب تسجيل الدخول أولاً.');
+    try {
+      await updateDoc(doc(db, 'guests', id), cleanUpdates);
+    } catch (e) {
+      console.error('Firestore guest update error:', e);
+      if (e.code === 'permission-denied') {
+        throw new Error('تم رفض تعديل الضيف من Firebase (Permission Denied).');
+      }
+      throw new Error('فشل التعديل على سيرفر Firebase: ' + (e.message || e));
+    }
+  }
 
   localDB.data.auditLogs.unshift({
     id: 'aud-' + Date.now(),
@@ -116,26 +128,33 @@ export function updateGuest(id, updates) {
   });
 
   localDB.save();
-
-  // Cloud Firestore Sync
-  const { isReal, db } = getFirebaseInstance();
-  if (isReal && db) {
-    try {
-      updateDoc(doc(db, 'guests', id), updates).catch(e => console.warn('Firestore guest update error:', e));
-    } catch (e) {
-      console.warn('Firestore guest update error:', e);
-    }
-  }
-
   return guest;
 }
 
-export function cancelInvitation(id, reason = 'Administrative cancellation') {
+export async function cancelInvitation(id, reason = 'Administrative cancellation') {
   const guest = localDB.data.guests[id];
   if (!guest) throw new Error('Guest not found.');
 
   guest.invitationStatus = 'CANCELLED';
   guest.updatedAt = new Date().toISOString();
+
+  // Cloud Firestore Sync
+  const { isReal, db, auth } = getFirebaseInstance();
+  if (isReal && db) {
+    if (!auth || !auth.currentUser) throw new Error('يجب تسجيل الدخول أولاً.');
+    try {
+      await updateDoc(doc(db, 'guests', id), {
+        invitationStatus: 'CANCELLED',
+        updatedAt: guest.updatedAt
+      });
+    } catch (e) {
+      console.error('Firestore cancel sync error:', e);
+      if (e.code === 'permission-denied') {
+        throw new Error('تم رفض إلغاء الدعوة من Firebase (Permission Denied).');
+      }
+      throw new Error('فشل إلغاء الدعوة في Firebase: ' + (e.message || e));
+    }
+  }
 
   localDB.data.auditLogs.unshift({
     id: 'aud-' + Date.now(),
@@ -149,24 +168,10 @@ export function cancelInvitation(id, reason = 'Administrative cancellation') {
   });
 
   localDB.save();
-
-  // Cloud Firestore Sync
-  const { isReal, db } = getFirebaseInstance();
-  if (isReal && db) {
-    try {
-      updateDoc(doc(db, 'guests', id), {
-        invitationStatus: 'CANCELLED',
-        updatedAt: guest.updatedAt
-      }).catch(e => console.warn('Firestore cancel sync error:', e));
-    } catch (e) {
-      console.warn('Firestore cancel sync error:', e);
-    }
-  }
-
   return guest;
 }
 
-export function reissueInvitation(id) {
+export async function reissueInvitation(id) {
   const guest = localDB.data.guests[id];
   if (!guest) throw new Error('Guest not found.');
 
@@ -178,6 +183,27 @@ export function reissueInvitation(id) {
   guest.checkedInAt = null;
   guest.checkedInBy = null;
   guest.updatedAt = new Date().toISOString();
+
+  // Cloud Firestore Sync
+  const { isReal, db, auth } = getFirebaseInstance();
+  if (isReal && db) {
+    if (!auth || !auth.currentUser) throw new Error('يجب تسجيل الدخول أولاً.');
+    try {
+      await updateDoc(doc(db, 'guests', id), {
+        token: newToken,
+        invitationStatus: 'VALID',
+        checkedInAt: null,
+        checkedInBy: null,
+        updatedAt: guest.updatedAt
+      });
+    } catch (e) {
+      console.error('Firestore reissue sync error:', e);
+      if (e.code === 'permission-denied') {
+        throw new Error('تم رفض إعادة إصدار الدعوة من Firebase (Permission Denied).');
+      }
+      throw new Error('فشل إعادة الإصدار في Firebase: ' + (e.message || e));
+    }
+  }
 
   localDB.data.auditLogs.unshift({
     id: 'aud-' + Date.now(),
@@ -191,23 +217,6 @@ export function reissueInvitation(id) {
   });
 
   localDB.save();
-
-  // Cloud Firestore Sync
-  const { isReal, db } = getFirebaseInstance();
-  if (isReal && db) {
-    try {
-      updateDoc(doc(db, 'guests', id), {
-        token: newToken,
-        invitationStatus: 'VALID',
-        checkedInAt: null,
-        checkedInBy: null,
-        updatedAt: guest.updatedAt
-      }).catch(e => console.warn('Firestore reissue sync error:', e));
-    } catch (e) {
-      console.warn('Firestore reissue sync error:', e);
-    }
-  }
-
   return guest;
 }
 

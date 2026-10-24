@@ -43,22 +43,44 @@ export function getActiveEvent() {
   return id ? getEventById(id) : null;
 }
 
-export function createEvent({ name, description, venue, startAt, endAt, timeZone, status = 'Active' }) {
+export async function createEvent({ name, description, venue, startAt, endAt, timeZone, status = 'Active' }) {
+  const cleanName = (name || '').trim();
+  const cleanVenue = (venue || '').trim();
+  if (!cleanName) throw new Error('يرجى إدخال اسم الفعالية.');
+  if (!cleanVenue) throw new Error('يرجى إدخال مكان الفعالية.');
+
   const id = 'evt-' + Date.now();
   const user = getSessionUser();
   
   const newEvent = {
     id,
-    name: name.trim(),
+    name: cleanName,
     description: (description || '').trim(),
-    venue: venue.trim(),
-    startAt,
-    endAt,
+    venue: cleanVenue,
+    startAt: startAt || new Date().toISOString(),
+    endAt: endAt || new Date(Date.now() + 86400000).toISOString(),
     timeZone: timeZone || 'UTC+3 (Riyadh / Dubai)',
     status: status || 'Active',
     createdAt: new Date().toISOString(),
     createdBy: user?.uid || 'admin'
   };
+
+  // Cloud Firestore Sync
+  const { isReal, db, auth } = getFirebaseInstance();
+  if (isReal && db) {
+    if (!auth || !auth.currentUser) {
+      throw new Error('يجب تسجيل الدخول بحساب الأدمن أولاً ليتم حفظ الفعالية على سيرفر Firebase.');
+    }
+    try {
+      await setDoc(doc(db, 'events', id), newEvent);
+    } catch (e) {
+      console.error('Firestore event sync error:', e);
+      if (e.code === 'permission-denied') {
+        throw new Error('تم رفض الحفظ من سيرفر Firebase (Permission Denied).\nالسبب: قواعد الأمان (Firestore Rules) تشترط أن يكون حسابك مفعل كـ ADMIN ولديه active: true. يرجى التأكد من الـ Rules وتحديثها لتشمل status == "true".');
+      }
+      throw new Error('فشل الحفظ على سيرفر Firebase: ' + (e.message || e));
+    }
+  }
 
   localDB.data.events[id] = newEvent;
   
@@ -78,25 +100,32 @@ export function createEvent({ name, description, venue, startAt, endAt, timeZone
   });
 
   localDB.save();
-
-  // Cloud Firestore Sync
-  const { isReal, db } = getFirebaseInstance();
-  if (isReal && db) {
-    try {
-      setDoc(doc(db, 'events', id), newEvent).catch(e => console.warn('Firestore event sync error:', e));
-    } catch (e) {
-      console.warn('Firestore event sync error:', e);
-    }
-  }
-
   return newEvent;
 }
 
-export function updateEvent(id, updates) {
+export async function updateEvent(id, updates) {
   const event = localDB.data.events[id];
   if (!event) throw new Error('Event not found.');
 
-  Object.assign(event, updates, { updatedAt: new Date().toISOString() });
+  const cleanUpdates = { ...updates, updatedAt: new Date().toISOString() };
+  Object.assign(event, cleanUpdates);
+
+  // Cloud Firestore Sync
+  const { isReal, db, auth } = getFirebaseInstance();
+  if (isReal && db) {
+    if (!auth || !auth.currentUser) {
+      throw new Error('يجب تسجيل الدخول بحساب الأدمن أولاً.');
+    }
+    try {
+      await updateDoc(doc(db, 'events', id), cleanUpdates);
+    } catch (e) {
+      console.error('Firestore event update error:', e);
+      if (e.code === 'permission-denied') {
+        throw new Error('تم رفض التعديل من Firebase (Permission Denied). يرجى التحقق من صلاحيات الأدمن وقواعد Firestore.');
+      }
+      throw new Error('فشل التعديل على سيرفر Firebase: ' + (e.message || e));
+    }
+  }
 
   localDB.data.auditLogs.unshift({
     id: 'aud-' + Date.now(),
@@ -109,16 +138,5 @@ export function updateEvent(id, updates) {
   });
 
   localDB.save();
-
-  // Cloud Firestore Sync
-  const { isReal, db } = getFirebaseInstance();
-  if (isReal && db) {
-    try {
-      updateDoc(doc(db, 'events', id), updates).catch(e => console.warn('Firestore event update error:', e));
-    } catch (e) {
-      console.warn('Firestore event update error:', e);
-    }
-  }
-
   return event;
 }
