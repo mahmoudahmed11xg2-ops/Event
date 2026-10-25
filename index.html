@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="en" dir="ltr">
+<html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Event Invitation & QR Check-in System</title>
-    <meta name="description" content="Complete event management and secure QR check-in platform with role-based access, attendance tracking, and Excel guest import." />
-    <meta property="og:title" content="Event Invitation & QR Check-in System" />
-    <meta property="og:description" content="Complete event management and secure QR check-in platform with role-based access, attendance tracking, and Excel guest import." />
+    <title>نظام إدارة الدعوات وتسجيل الحضور بالـ QR</title>
+    <meta name="description" content="منصة متكاملة لإدارة الفعاليات والدعوات وتسجيل الحضور الذكي برمز الاستجابة السريعة QR المشفر مع دعم المزامنة السحابية." />
+    <meta property="og:title" content="نظام إدارة الدعوات وتسجيل الحضور بالـ QR" />
+    <meta property="og:description" content="منصة متكاملة لإدارة الفعاليات والدعوات وتسجيل الحضور الذكي برمز الاستجابة السريعة QR المشفر مع دعم المزامنة السحابية." />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="stylesheet" href="./src/style.css" />
     <!-- Native Browser Module Mapping for Standalone GitHub Pages Deployment -->
@@ -30,69 +30,37 @@
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   </head>
   <body>
-    <!-- Top Header -->
-    <header class="app-header">
-      <div class="brand-section">
-        <div class="brand-icon">QR</div>
-        <div class="brand-text">
-          <h1 data-i18n="appTitle">Event Invitation & QR Check-in System</h1>
-          <p data-i18n="subtitle">Enterprise Attendance & Guest Management</p>
-        </div>
-      </div>
+    <!-- Hidden File Input for QR Image Upload -->
+    <input type="file" id="qr-file-input" accept="image/*" style="display: none;" />
 
-      <div class="header-controls">
-        <!-- Event Selector -->
-        <div class="event-selector-wrap" id="header-event-selector-wrap" style="display: none;">
-          <span style="font-size: 0.8rem; color: var(--text-dim);">📅</span>
-          <select id="active-event-select" aria-label="Select Active Event">
-            <!-- Populated dynamically -->
-          </select>
-        </div>
-
-        <!-- Language Switcher -->
-        <button id="lang-toggle-btn" class="btn btn-secondary btn-sm" aria-label="Toggle Language">
-          العربية
-        </button>
-
-        <!-- Firebase Connection Status Badge -->
-        <div id="firebase-status-badge" style="display: inline-flex; align-items: center; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-sm); padding: 0.25rem 0.65rem; font-size: 0.8rem; color: #10b981;">
-          <span id="firebase-status-dot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981; margin-inline-end:6px; box-shadow: 0 0 6px #10b981;"></span>
-          <span id="firebase-status-text">event-a5ab1</span>
-        </div>
-
-        <!-- User Session Badge -->
-        <div id="user-badge" class="user-badge" style="display: none;">
-          <span id="user-display-name">Admin</span>
-          <span id="user-role-tag" class="role-tag admin">ADMIN</span>
-          <button id="logout-btn" class="btn btn-danger btn-sm" data-i18n="logout">Log Out</button>
-        </div>
-      </div>
-    </header>
-
-    <!-- Main Container -->
     <div id="app-root">
-      <!-- Unauthenticated View: Login Screen -->
+      <!-- 1. Unauthenticated View: Sign In Screen -->
       <section id="view-login" class="login-screen">
         <div class="login-card">
           <div class="login-header">
-            <div class="brand-icon" style="margin: 0 auto 0.75rem auto; width: 48px; height: 48px; font-size: 1.5rem;">QR</div>
-            <h2 data-i18n="loginTitle">Sign In</h2>
-            <p data-i18n="loginSubtitle" style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">
-              Access your event management or check-in terminal
-            </p>
+            <div class="brand-icon-logo">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                <rect x="14" y="14" width="7" height="7" rx="1.5" />
+              </svg>
+            </div>
+            <h2 data-i18n="brandTitle">نظام إدارة الدعوات</h2>
+            <p data-i18n="loginSubtitle">الدخول إلى لوحة إدارة الفعالية أو محطة التحقق</p>
           </div>
 
           <form id="login-form">
             <div class="form-group">
-              <label for="login-email" data-i18n="email">Email Address</label>
+              <label for="login-email" data-i18n="email">البريد الإلكتروني</label>
               <input type="email" id="login-email" class="form-control" required placeholder="name@event.org" autocomplete="email" />
             </div>
 
             <div class="form-group">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-                <label for="login-password" data-i18n="password" style="margin-bottom:0;">Password</label>
-                <button type="button" id="toggle-password-btn" class="btn btn-secondary btn-sm" style="padding: 0.1rem 0.4rem; font-size: 0.7rem;" data-i18n="showPassword">
-                  Show
+                <label for="login-password" data-i18n="password" style="margin-bottom:0;">كلمة المرور</label>
+                <button type="button" id="toggle-password-btn" class="btn btn-secondary btn-sm" style="padding: 0.15rem 0.5rem; font-size: 0.75rem;" data-i18n="showPassword">
+                  إظهار
                 </button>
               </div>
               <input type="password" id="login-password" class="form-control" required placeholder="••••••••" autocomplete="current-password" />
@@ -100,472 +68,834 @@
 
             <div style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
               <input type="checkbox" id="login-remember" checked />
-              <label for="login-remember" data-i18n="rememberMe">Remember session on this device</label>
+              <label for="login-remember" data-i18n="rememberMe">تذكر الجلسة على هذا الجهاز</label>
             </div>
 
-            <button type="submit" id="login-submit-btn" class="btn btn-primary" style="width: 100%; padding: 0.75rem;" data-i18n="signInBtn">
-              Sign In
+            <button type="submit" id="login-submit-btn" class="btn btn-primary btn-full" style="padding: 0.75rem;" data-i18n="signInBtn">
+              تسجيل الدخول
             </button>
 
-            <div id="login-error-alert" style="display: none; margin-top: 1rem; padding: 0.75rem; background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; border-radius: var(--radius-sm); color: #fca5a5; font-size: 0.85rem;"></div>
+            <div id="login-error-alert" style="display: none; margin-top: 1rem; padding: 0.75rem; background: var(--status-red-bg); border: 1px solid var(--status-red-border); border-radius: var(--radius-sm); color: var(--status-red-text); font-size: 0.85rem;"></div>
           </form>
         </div>
       </section>
 
-      <!-- Authenticated App View -->
+      <!-- 2. Authenticated App View -->
       <div id="view-authenticated" class="app-container" style="display: none;">
-        <!-- Sidebar Navigation -->
+        <!-- Right Sidebar in RTL -->
         <aside class="app-sidebar" id="app-sidebar">
-          <button class="nav-item active" data-panel="panel-dashboard" id="nav-btn-dashboard">
-            <span class="icon">📊</span>
-            <span data-i18n="navDashboard">Dashboard</span>
-          </button>
-          <button class="nav-item" data-panel="panel-terminal" id="nav-btn-scanner">
-            <span class="icon">📷</span>
-            <span data-i18n="navScanner">Scan QR</span>
-          </button>
-          <button class="nav-item admin-only" data-panel="panel-events" id="nav-btn-events">
-            <span class="icon">📅</span>
-            <span data-i18n="navEvents">Events</span>
-          </button>
-          <button class="nav-item admin-only" data-panel="panel-guests" id="nav-btn-guests">
-            <span class="icon">👥</span>
-            <span data-i18n="navGuests">Guests</span>
-          </button>
-          <button class="nav-item admin-only" data-panel="panel-import" id="nav-btn-import">
-            <span class="icon">📥</span>
-            <span data-i18n="navImport">Import Excel</span>
-          </button>
-          <button class="nav-item admin-only" data-panel="panel-qr" id="nav-btn-qr">
-            <span class="icon">🪪</span>
-            <span data-i18n="navQrCodes">QR & Badges</span>
-          </button>
-          <button class="nav-item admin-only" data-panel="panel-history" id="nav-btn-history">
-            <span class="icon">📜</span>
-            <span data-i18n="navHistory">Check-in History</span>
-          </button>
-          <button class="nav-item admin-only" data-panel="panel-employees" id="nav-btn-employees">
-            <span class="icon">🛡️</span>
-            <span data-i18n="navEmployees">Staff Accounts</span>
-          </button>
+          <div>
+            <!-- Sidebar Header & Brand -->
+            <div class="sidebar-header">
+              <div class="sidebar-brand">
+                <div class="brand-grid-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                    <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                  </svg>
+                </div>
+                <div class="brand-titles">
+                  <span class="title" data-i18n="brandTitle">نظام إدارة الدعوات</span>
+                  <span class="sub" data-i18n="brandSubtitle">وتسجيل الحضور بالـ QR</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sidebar Navigation Links -->
+            <nav class="sidebar-nav">
+              <button class="nav-item active" data-panel="panel-dashboard" id="nav-btn-dashboard">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
+                  </svg>
+                </span>
+                <span data-i18n="navDashboard">الرئيسية</span>
+              </button>
+
+              <button class="nav-item admin-only" data-panel="panel-guests" id="nav-btn-invitations">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <line x1="19" x2="19" y1="8" y2="14" />
+                    <line x1="22" x2="16" y1="11" y2="11" />
+                  </svg>
+                </span>
+                <span data-i18n="navInvitations">الدعوات</span>
+              </button>
+
+              <button class="nav-item admin-only" data-panel="panel-events" id="nav-btn-events">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                    <line x1="16" x2="16" y1="2" y2="6" />
+                    <line x1="8" x2="8" y1="2" y2="6" />
+                    <line x1="3" x2="21" y1="10" y2="10" />
+                  </svg>
+                </span>
+                <span data-i18n="navEvents">المناسبات</span>
+              </button>
+
+              <button class="nav-item admin-only" data-panel="panel-guests" id="nav-btn-guests">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                </span>
+                <span data-i18n="navGuests">قائمة الضيوف</span>
+              </button>
+
+              <button class="nav-item" data-panel="panel-terminal" id="nav-btn-scanner">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="7" height="7" />
+                    <rect x="14" y="3" width="7" height="7" />
+                    <rect x="14" y="14" width="7" height="7" />
+                    <rect x="3" y="14" width="7" height="7" />
+                  </svg>
+                </span>
+                <span data-i18n="navScanner">تسجيل الحضور</span>
+              </button>
+
+              <button class="nav-item" data-panel="panel-notifications" id="nav-btn-notifications">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                  </svg>
+                </span>
+                <span data-i18n="navNotifications">إشعارات</span>
+              </button>
+
+              <button class="nav-item admin-only" data-panel="panel-history" id="nav-btn-reports">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" x2="18" y1="20" y2="10" />
+                    <line x1="12" x2="12" y1="20" y2="4" />
+                    <line x1="6" x2="6" y1="20" y2="14" />
+                  </svg>
+                </span>
+                <span data-i18n="navReports">التقارير</span>
+              </button>
+
+              <button class="nav-item admin-only" data-panel="panel-settings" id="nav-btn-settings">
+                <span class="nav-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </span>
+                <span data-i18n="navSettings">الإعدادات</span>
+              </button>
+            </nav>
+          </div>
+
+          <!-- Bottom Docked Quick Action in Sidebar -->
+          <div class="sidebar-footer">
+            <div class="docked-quick-scan" id="docked-quick-scan-btn">
+              <div class="docked-content">
+                <div class="docked-qr-box">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <rect x="3" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="3" width="7" height="7" rx="1" />
+                    <rect x="14" y="14" width="7" height="7" rx="1" />
+                    <rect x="3" y="14" width="7" height="7" rx="1" />
+                  </svg>
+                </div>
+                <div class="docked-text">
+                  <span class="docked-title" data-i18n="quickScanCardTitle">امسح رمز QR</span>
+                  <span class="docked-sub" data-i18n="quickScanCardSubtitle">لتسجيل الحضور بسرعة</span>
+                </div>
+              </div>
+              <span class="docked-arrow">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </span>
+            </div>
+          </div>
         </aside>
 
-        <!-- Main Workspace Panels -->
-        <main class="app-content">
-          <!-- 1. DASHBOARD PANEL -->
-          <section id="panel-dashboard" class="content-panel">
-            <div class="panel-header">
-              <div>
-                <h2 data-i18n="navDashboard">Dashboard Overview</h2>
-                <p id="dashboard-active-event-title" style="color: var(--accent-red); font-weight: 600; margin-top: 0.25rem;"></p>
-              </div>
-              <div style="display:flex; gap:0.5rem;">
-                <button class="btn btn-secondary btn-sm" id="dash-quick-add-guest" data-i18n="addGuestBtn">+ Add Guest</button>
-                <button class="btn btn-primary btn-sm" id="dash-quick-scan" data-i18n="navScanner">📷 Open Scanner</button>
-              </div>
-            </div>
-
-            <!-- Statistics Cards -->
-            <div class="stats-grid">
-              <div class="stat-card total">
-                <span class="stat-label" data-i18n="statTotalGuests">Total Guests</span>
-                <span class="stat-val" id="stat-total-guests">0</span>
-                <span class="stat-sub" data-i18n="statTotalGuestsSub">Registered across lists</span>
-              </div>
-              <div class="stat-card valid">
-                <span class="stat-label" data-i18n="statValidInvitations">Valid Invitations</span>
-                <span class="stat-val" id="stat-valid-invitations">0</span>
-                <span class="stat-sub" data-i18n="statValidInvitationsSub">Eligible for admission</span>
-              </div>
-              <div class="stat-card checked-in">
-                <span class="stat-label" data-i18n="statCheckedIn">Checked In</span>
-                <span class="stat-val" id="stat-checked-in">0</span>
-                <span class="stat-sub" data-i18n="statCheckedInSub">Admitted at gates</span>
-              </div>
-              <div class="stat-card arriving">
-                <span class="stat-label" data-i18n="statYetToArrive">Yet to Arrive</span>
-                <span class="stat-val" id="stat-yet-to-arrive">0</span>
-                <span class="stat-sub" data-i18n="statYetToArriveSub">Pending guests</span>
-              </div>
-              <div class="stat-card cancelled">
-                <span class="stat-label" data-i18n="statCancelled">Cancelled</span>
-                <span class="stat-val" id="stat-cancelled">0</span>
-                <span class="stat-sub" data-i18n="statCancelledSub">Excluded from entry</span>
-              </div>
-              <div class="stat-card rate">
-                <span class="stat-label" data-i18n="statAttendanceRate">Attendance Rate</span>
-                <span class="stat-val" id="stat-attendance-rate">0%</span>
-                <div class="progress-bar-wrap">
-                  <div class="progress-bar-fill" id="stat-progress-bar" style="width: 0%;"></div>
+        <!-- Main Workspace Section -->
+        <div class="app-main-workspace">
+          <!-- Top Executive Header Bar -->
+          <header class="top-header-bar">
+            <!-- Metadata & Live Clock (Right side in RTL) -->
+            <div class="top-header-start">
+              <div class="header-meta-group">
+                <div class="db-status-badge">
+                  <span class="db-status-dot"></span>
+                  <span id="header-db-status" data-i18n="dbConnected">قاعدة البيانات متصلة</span>
+                </div>
+                <span class="meta-divider">|</span>
+                <div class="meta-item">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                    <line x1="16" x2="16" y1="2" y2="6" />
+                    <line x1="8" x2="8" y1="2" y2="6" />
+                    <line x1="3" x2="21" y1="10" y2="10" />
+                  </svg>
+                  <span id="header-live-date">السبت، 25 أكتوبر 2025</span>
+                </div>
+                <span class="meta-divider">|</span>
+                <div class="meta-item">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                  <span id="header-live-time">02:43 م</span>
                 </div>
               </div>
             </div>
 
-            <!-- Live Check-in Feed -->
-            <div class="card">
-              <div class="card-title">
-                <span data-i18n="recentActivity">Live Check-in Activity</span>
-                <span style="font-size: 0.8rem; color: #10b981; display: flex; align-items: center; gap: 4px;">
-                  <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
-                  <span data-i18n="realtimeSync">Real-time Sync</span>
-                </span>
+            <!-- Profile, Notifications, Event Select & Lang (Left side in RTL) -->
+            <div class="top-header-end">
+              <!-- Active Event Selector -->
+              <div class="event-selector-compact" id="header-event-selector-wrap">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                  <line x1="16" x2="16" y1="2" y2="6" />
+                  <line x1="8" x2="8" y1="2" y2="6" />
+                  <line x1="3" x2="21" y1="10" y2="10" />
+                </svg>
+                <select id="active-event-select" aria-label="Select Active Event">
+                  <!-- Populated dynamically -->
+                </select>
               </div>
-              <div class="table-responsive">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th data-i18n="timestamp">Time</th>
-                      <th data-i18n="fullName">Guest Name</th>
-                      <th data-i18n="company">Company</th>
-                      <th data-i18n="token">Token</th>
-                      <th data-i18n="employee">Staff</th>
-                      <th data-i18n="invitationStatus">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody id="live-checkin-table-body">
-                    <!-- Populated dynamically -->
-                  </tbody>
-                </table>
+
+              <!-- Language Switcher Button -->
+              <button id="lang-toggle-btn" class="btn btn-secondary btn-sm" aria-label="Toggle Language">
+                English
+              </button>
+
+              <!-- Notification Bell -->
+              <button class="notification-bell-btn" id="btn-notifications-bell" aria-label="Notifications" title="إشعارات">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                </svg>
+                <span class="notification-unread-dot" id="bell-unread-dot" style="display: none;"></span>
+              </button>
+
+              <!-- User Profile Menu -->
+              <div class="user-profile-menu-wrap" id="user-badge">
+                <button class="user-profile-pill" id="user-profile-toggle-btn" aria-label="User Profile">
+                  <div class="user-avatar-circle" id="user-avatar-initial">M</div>
+                  <div class="user-meta-info">
+                    <span class="user-name" id="user-display-name">mahmoud</span>
+                    <span class="user-role-label" id="user-role-tag">مدير النظام</span>
+                  </div>
+                  <span class="user-chevron">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </span>
+                </button>
+                <div class="user-dropdown-menu" id="user-dropdown">
+                  <button class="dropdown-item danger" id="logout-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" x2="9" y1="12" y2="12" />
+                    </svg>
+                    <span data-i18n="logout">تسجيل الخروج</span>
+                  </button>
+                </div>
               </div>
             </div>
-          </section>
+          </header>
 
-          <!-- 2. SCANNER TERMINAL PANEL (For Staff & Admin) -->
-          <section id="panel-terminal" class="content-panel" style="display: none;">
-            <div class="terminal-container">
-              <div class="panel-header" style="text-align: center; justify-content: center; margin-bottom: 1rem;">
+          <!-- Panels Container -->
+          <main class="app-content">
+            <!-- 1. DASHBOARD OVERVIEW PANEL -->
+            <section id="panel-dashboard" class="content-panel">
+              <!-- Greeting Banner -->
+              <div class="dashboard-greeting-bar">
+                <div class="greeting-titles">
+                  <h1 data-i18n="greetingTitle">👋 مرحباً بك مجدداً</h1>
+                  <p data-i18n="greetingSubtitle">إليك نظرة سريعة على أداء الدعوات والحضور اليوم</p>
+                </div>
                 <div>
-                  <h2 data-i18n="checkinTitle">Event Check-in Terminal</h2>
-                  <p id="terminal-event-name" style="color: var(--accent-red); font-weight: 600;"></p>
-                </div>
-              </div>
-
-              <!-- Scanner Camera Viewport -->
-              <div class="scanner-box">
-                <div id="scanner-viewport"></div>
-                <div id="scanner-idle-overlay" class="scanner-overlay-idle">
-                  <div style="font-size: 3rem;">📷</div>
-                  <h3 data-i18n="scannerIdle">Camera ready. Align QR code within the frame.</h3>
-                  <button id="btn-start-camera" class="btn btn-primary" style="padding: 0.75rem 1.5rem; font-size: 1rem;">
-                    <span data-i18n="startCamera">Open Camera Scanner</span>
+                  <button class="btn btn-primary" id="dash-quick-add-guest" data-i18n="newInvitationBtn">
+                    + دعوة جديدة
                   </button>
                 </div>
               </div>
 
-              <div style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1.25rem;">
-                <button id="btn-stop-camera" class="btn btn-secondary btn-sm" style="display: none;" data-i18n="stopCamera">
-                  Stop Camera
-                </button>
-                <button id="btn-next-scan" class="btn btn-primary btn-sm" style="display: none;" data-i18n="nextGuestBtn">
-                  Scan Next Guest
-                </button>
-              </div>
-
-              <!-- Scan Result Feedback Display -->
-              <div id="scan-result-container" style="display: none;"></div>
-
-              <!-- Manual Token Search Fallback -->
-              <div class="card" style="margin-top: 1rem;">
-                <div class="card-title" style="font-size: 0.95rem;" data-i18n="manualEntry">Manual Token Search</div>
-                <div style="display: flex; gap: 0.5rem;">
-                  <input type="text" id="manual-token-input" class="form-control" placeholder="e.g. INV-A7F2-99B4-4D1E" />
-                  <button id="manual-token-btn" class="btn btn-secondary" data-i18n="validateTokenBtn">Verify</button>
-                </div>
-              </div>
-
-              <!-- Today's scan count for staff -->
-              <div style="text-align: center; color: var(--text-dim); font-size: 0.85rem; margin-top: 1rem;">
-                <span data-i18n="todayStats">Your Scans Today:</span> <strong id="staff-scan-count" style="color: var(--text-main);">0</strong>
-              </div>
-            </div>
-          </section>
-
-          <!-- 3. EVENTS PANEL -->
-          <section id="panel-events" class="content-panel" style="display: none;">
-            <div class="panel-header">
-              <div>
-                <h2 data-i18n="eventsTitle">Event Management</h2>
-                <p data-i18n="eventsSubtitle">Manage corporate gatherings, venues, timezones and active status</p>
-              </div>
-              <button class="btn btn-primary" id="btn-open-create-event" data-i18n="newEventBtn">+ Create Event</button>
-            </div>
-
-            <div class="card">
-              <div class="table-responsive">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th data-i18n="eventName">Event Name</th>
-                      <th data-i18n="eventVenue">Venue</th>
-                      <th data-i18n="eventDates">Dates</th>
-                      <th data-i18n="timeZone">Timezone</th>
-                      <th data-i18n="eventStatus">Status</th>
-                      <th data-i18n="actions">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="events-table-body">
-                    <!-- Populated dynamically -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
-
-          <!-- 4. GUEST MANAGEMENT PANEL -->
-          <section id="panel-guests" class="content-panel" style="display: none;">
-            <div class="panel-header">
-              <div>
-                <h2 data-i18n="guestsTitle">Guest Management</h2>
-                <p data-i18n="guestsSubtitle">Register attendees, issue cryptographically unique QR passes, and monitor attendance</p>
-              </div>
-              <div style="display: flex; gap: 0.5rem;">
-                <button class="btn btn-secondary" id="btn-export-guests-csv" data-i18n="exportCsv">Export CSV</button>
-                <button class="btn btn-primary" id="btn-open-add-guest" data-i18n="addGuestBtn">+ Add Guest</button>
-              </div>
-            </div>
-
-            <!-- Filter & Search Bar -->
-            <div class="filter-bar">
-              <div class="search-input-wrap">
-                <input type="text" id="guest-search-input" class="form-control" placeholder="Search by name, company, email or token..." data-i18n-placeholder="searchPlaceholder" />
-              </div>
-              <select id="guest-status-filter" class="form-control" style="width: auto;">
-                <option value="ALL" data-i18n="filterAll">All Statuses</option>
-                <option value="VALID" data-i18n="statusValid">VALID</option>
-                <option value="CHECKED_IN" data-i18n="statusCheckedIn">CHECKED IN</option>
-                <option value="CANCELLED" data-i18n="statusCancelledInv">CANCELLED</option>
-              </select>
-            </div>
-
-            <div class="card">
-              <div class="table-responsive">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th data-i18n="fullName">Full Name</th>
-                      <th data-i18n="company">Company</th>
-                      <th data-i18n="email">Email</th>
-                      <th data-i18n="phone">Phone</th>
-                      <th data-i18n="companions">Companions</th>
-                      <th data-i18n="invitationStatus">Status</th>
-                      <th data-i18n="token">QR Token</th>
-                      <th data-i18n="actions">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="guests-table-body">
-                    <!-- Populated dynamically -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </section>
-
-          <!-- 5. IMPORT EXCEL PANEL -->
-          <section id="panel-import" class="content-panel" style="display: none;">
-            <div class="panel-header">
-              <div>
-                <h2 data-i18n="importTitle">Import Guests from Spreadsheet</h2>
-                <p data-i18n="importSubtitle">Upload .xlsx or .csv files to import invitations in bulk</p>
-              </div>
-            </div>
-
-            <div class="card">
-              <div class="dropzone" id="excel-dropzone">
-                <div class="dropzone-icon">📊</div>
-                <h3 data-i18n="dropExcel" style="margin-bottom: 0.5rem;">Drag and drop your spreadsheet here or click to browse</h3>
-                <p data-i18n="supportedFormats" style="color: var(--text-dim); font-size: 0.85rem;">Supported formats: .xlsx, .xls, .csv (Max 5MB)</p>
-                <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" style="display: none;" />
-              </div>
-
-              <!-- Preview & Validation Container -->
-              <div id="import-preview-section" style="display: none; margin-top: 1.5rem;">
-                <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                  <div class="stat-card valid" style="flex:1;">
-                    <span class="stat-label" data-i18n="validRows">Valid Rows</span>
-                    <span class="stat-val" id="import-count-valid" style="color: var(--status-green);">0</span>
+              <!-- 6 Statistics Cards (Strictly matching reference image) -->
+              <div class="stats-cards-row">
+                <!-- Card 1: Attendance Rate Gauge -->
+                <div class="stat-widget-card rate-card">
+                  <div class="gauge-container">
+                    <svg viewBox="0 0 100 100" class="gauge-svg">
+                      <circle class="gauge-bg" cx="50" cy="50" r="38" />
+                      <circle class="gauge-fill" id="gauge-circle-fill" cx="50" cy="50" r="38" />
+                    </svg>
+                    <div class="gauge-center-text" id="stat-attendance-rate">100%</div>
                   </div>
-                  <div class="stat-card arriving" style="flex:1;">
-                    <span class="stat-label" data-i18n="duplicateRows">Duplicate / Warnings</span>
-                    <span class="stat-val" id="import-count-dup" style="color: var(--status-amber);">0</span>
-                  </div>
-                  <div class="stat-card cancelled" style="flex:1;">
-                    <span class="stat-label" data-i18n="invalidRows">Invalid Rows</span>
-                    <span class="stat-val" id="import-count-invalid" style="color: var(--status-red);">0</span>
+                  <div class="rate-card-labels">
+                    <div class="rate-title" data-i18n="statAttendanceRate">نسبة الحضور</div>
+                    <div class="rate-sub" data-i18n="statAttendanceRateSub">من إجمالي المدعوين</div>
                   </div>
                 </div>
 
-                <!-- Preview Table -->
-                <div class="table-responsive" style="max-height: 280px; overflow-y: auto; margin-bottom: 1rem;">
+                <!-- Card 2: Total Guests -->
+                <div class="stat-widget-card">
+                  <div class="stat-widget-top">
+                    <span class="stat-title" data-i18n="statTotalGuests">إجمالي المدعوين</span>
+                    <div class="stat-icon-badge">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                        <polyline points="22,6 12,13 2,6" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="stat-widget-middle">
+                    <div class="stat-number" id="stat-total-guests">0</div>
+                  </div>
+                  <div class="stat-widget-bottom">
+                    <span class="stat-subtext" data-i18n="statTotalGuestsSub">المسجلين في القوائم</span>
+                  </div>
+                </div>
+
+                <!-- Card 3: Valid Invitations -->
+                <div class="stat-widget-card">
+                  <div class="stat-widget-top">
+                    <span class="stat-title" data-i18n="statValidInvitations">الدعوات الصالحة</span>
+                    <div class="stat-icon-badge">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="stat-widget-middle">
+                    <div class="stat-number" id="stat-valid-invitations">0</div>
+                  </div>
+                  <div class="stat-widget-bottom">
+                    <span class="stat-subtext" data-i18n="statValidInvitationsSub">المتاح لهم بالدخول</span>
+                  </div>
+                </div>
+
+                <!-- Card 4: Checked In -->
+                <div class="stat-widget-card">
+                  <div class="stat-widget-top">
+                    <span class="stat-title" data-i18n="statCheckedIn">تم حضورهم</span>
+                    <div class="stat-icon-badge">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="stat-widget-middle">
+                    <div class="stat-number" id="stat-checked-in">0</div>
+                  </div>
+                  <div class="stat-widget-bottom">
+                    <span class="stat-subtext" data-i18n="statCheckedInSub">المسجلين في الفعاليات</span>
+                  </div>
+                </div>
+
+                <!-- Card 5: Yet to Arrive -->
+                <div class="stat-widget-card">
+                  <div class="stat-widget-top">
+                    <span class="stat-title" data-i18n="statYetToArrive">لم يصلوا بعد</span>
+                    <div class="stat-icon-badge">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="stat-widget-middle">
+                    <div class="stat-number" id="stat-yet-to-arrive">0</div>
+                  </div>
+                  <div class="stat-widget-bottom">
+                    <span class="stat-subtext" data-i18n="statYetToArriveSub">في انتظار الحضور</span>
+                  </div>
+                </div>
+
+                <!-- Card 6: Cancelled Invitations -->
+                <div class="stat-widget-card">
+                  <div class="stat-widget-top">
+                    <span class="stat-title" data-i18n="statCancelled">الدعوات الملغاة</span>
+                    <div class="stat-icon-badge red-tint">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div class="stat-widget-middle">
+                    <div class="stat-number" id="stat-cancelled">0</div>
+                  </div>
+                  <div class="stat-widget-bottom">
+                    <span class="stat-subtext" data-i18n="statCancelledSub">إلغاء حتى الآن</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Lower Section: 2 Columns (Live Check-ins & QR Scanner Card) -->
+              <div class="dashboard-lower-grid">
+                <!-- Column 1 (Left in RTL): Live Check-in Activity Table -->
+                <div class="card-executive">
+                  <div class="card-header-flex">
+                    <div class="card-header-title">
+                      <span class="live-pulse-dot"></span>
+                      <span data-i18n="recentActivity">النشاط المباشر للدخول</span>
+                    </div>
+                    <a href="javascript:void(0)" class="card-header-link" id="link-view-all-history">
+                      <span data-i18n="viewAll">عرض الكل</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6" />
+                      </svg>
+                    </a>
+                  </div>
+
+                  <div class="table-responsive">
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th data-i18n="timestamp">الوقت</th>
+                          <th data-i18n="fullName">الاسم الكامل</th>
+                          <th data-i18n="company">الجهة / الشركة</th>
+                          <th data-i18n="token">رمز التحقق (Token)</th>
+                          <th data-i18n="employee">الموظف</th>
+                          <th data-i18n="invitationStatus">حالة الدعوة</th>
+                        </tr>
+                      </thead>
+                      <tbody id="live-checkin-table-body">
+                        <!-- Populated dynamically -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Column 2 (Right in RTL): Quick QR Scanner Card -->
+                <div class="card-executive qr-scanner-card">
+                  <div class="qr-scanner-icon-box">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                      <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                      <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                      <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+                      <rect x="7" y="7" width="3" height="3" />
+                      <rect x="14" y="7" width="3" height="3" />
+                      <rect x="7" y="14" width="3" height="3" />
+                      <rect x="14" y="14" width="3" height="3" />
+                    </svg>
+                  </div>
+                  <h3 data-i18n="qrCheckinCardTitle">تسجيل الحضور بالـ QR</h3>
+                  <p data-i18n="qrCheckinCardSubtitle">امسح رمز الاستجابة السريعة للدخول</p>
+
+                  <button class="btn btn-primary btn-full" id="dash-open-camera-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                      <circle cx="12" cy="13" r="4" />
+                    </svg>
+                    <span data-i18n="openCamera">فتح الكاميرا</span>
+                  </button>
+
+                  <div class="qr-divider-line">
+                    <span data-i18n="orText">أو</span>
+                  </div>
+
+                  <button class="btn btn-secondary btn-full" id="dash-upload-qr-btn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                    <span data-i18n="uploadQrImage">تحميل صورة QR</span>
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <!-- 2. SCANNER TERMINAL PANEL (For Staff & Admin) -->
+            <section id="panel-terminal" class="content-panel" style="display: none;">
+              <div class="terminal-container">
+                <div class="panel-header" style="text-align: center; justify-content: center; margin-bottom: 1rem;">
+                  <div>
+                    <h2 data-i18n="checkinTitle">محطة تسجيل الحضور والبوابات</h2>
+                    <p id="terminal-event-name" style="color: var(--primary-dark); font-weight: 700;"></p>
+                  </div>
+                </div>
+
+                <!-- Scanner Camera Viewport -->
+                <div class="scanner-box">
+                  <div id="scanner-viewport"></div>
+                  <div id="scanner-idle-overlay" class="scanner-overlay-idle">
+                    <div style="font-size: 3rem;">📷</div>
+                    <h3 data-i18n="scannerIdle">الكاميرا جاهزة. قم بتوجيه رمز QR داخل إطار الفحص.</h3>
+                    <button id="btn-start-camera" class="btn btn-primary" style="padding: 0.75rem 1.75rem; font-size: 1rem;">
+                      <span data-i18n="startCamera">فتح كاميرا الفحص</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1.25rem;">
+                  <button id="btn-stop-camera" class="btn btn-secondary btn-sm" style="display: none;" data-i18n="stopCamera">
+                    إيقاف الكاميرا
+                  </button>
+                  <button id="btn-next-scan" class="btn btn-primary btn-sm" style="display: none;" data-i18n="nextGuestBtn">
+                    فحص الضيف التالي
+                  </button>
+                </div>
+
+                <!-- Scan Result Feedback Display -->
+                <div id="scan-result-container" style="display: none;"></div>
+
+                <!-- Manual Token Search Fallback -->
+                <div class="card-executive" style="margin-top: 1rem;">
+                  <div style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem;" data-i18n="manualEntry">البحث اليدوي برمز الدعوة</div>
+                  <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="manual-token-input" class="form-control" placeholder="e.g. INV-A7F2-99B4-4D1E" />
+                    <button id="manual-token-btn" class="btn btn-primary" data-i18n="validateTokenBtn">تحقق من الرمز</button>
+                  </div>
+                </div>
+
+                <!-- Today's scan count for staff -->
+                <div style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">
+                  <span data-i18n="todayStats">عمليات المسح لك اليوم:</span> <strong id="staff-scan-count" style="color: var(--text-main);">0</strong>
+                </div>
+              </div>
+            </section>
+
+            <!-- 3. EVENTS MANAGEMENT PANEL -->
+            <section id="panel-events" class="content-panel" style="display: none;">
+              <div class="panel-header">
+                <div>
+                  <h2 data-i18n="eventsTitle">إدارة الفعاليات والمناسبات</h2>
+                  <p data-i18n="eventsSubtitle">إدارة فعاليات ومؤتمرات المؤسسة والمواقع والمناطق الزمنية والحالة</p>
+                </div>
+                <button class="btn btn-primary" id="btn-open-create-event" data-i18n="newEventBtn">+ إنشاء فعالية جديدة</button>
+              </div>
+
+              <div class="card-executive">
+                <div class="table-responsive">
                   <table class="data-table">
                     <thead>
                       <tr>
-                        <th>#</th>
-                        <th data-i18n="fullName">Full Name</th>
-                        <th data-i18n="company">Company</th>
-                        <th data-i18n="email">Email</th>
-                        <th data-i18n="phone">Phone</th>
-                        <th data-i18n="companions">Companions</th>
-                        <th>Validation Result</th>
+                        <th data-i18n="eventName">اسم الفعالية</th>
+                        <th data-i18n="eventVenue">المكان / القاعة</th>
+                        <th data-i18n="eventDates">التاريخ والوقت</th>
+                        <th data-i18n="timeZone">المنطقة الزمنية</th>
+                        <th data-i18n="eventStatus">الحالة</th>
+                        <th data-i18n="actions">الإجراءات</th>
                       </tr>
                     </thead>
-                    <tbody id="import-preview-tbody"></tbody>
+                    <tbody id="events-table-body">
+                      <!-- Populated dynamically -->
+                    </tbody>
                   </table>
                 </div>
+              </div>
+            </section>
 
-                <!-- Import Actions -->
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                  <button id="btn-download-import-errors" class="btn btn-secondary btn-sm" style="display: none;" data-i18n="downloadErrors">
-                    Download Error Report
+            <!-- 4. GUEST MANAGEMENT PANEL -->
+            <section id="panel-guests" class="content-panel" style="display: none;">
+              <div class="panel-header">
+                <div>
+                  <h2 data-i18n="guestsTitle">إدارة الضيوف والدعوات</h2>
+                  <p data-i18n="guestsSubtitle">تسجيل الحضور وإصدار رموز QR المشفرة والآمنة ومتابعة الدخول</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                  <button class="btn btn-secondary" id="btn-switch-to-import" data-i18n="navImport">
+                    📥 استيراد من إكسل
                   </button>
-                  <div style="display: flex; gap: 0.5rem; margin-inline-start: auto;">
-                    <button id="btn-cancel-import" class="btn btn-secondary" data-i18n="cancel">Cancel</button>
-                    <button id="btn-confirm-import" class="btn btn-primary" data-i18n="startImport">Confirm & Import Guests</button>
-                  </div>
+                  <button class="btn btn-secondary" id="btn-export-guests-csv" data-i18n="exportCsv">تصدير CSV</button>
+                  <button class="btn btn-primary" id="btn-open-add-guest" data-i18n="addGuestBtn">+ إضافة ضيف</button>
+                </div>
+              </div>
+
+              <!-- Filter & Search Bar -->
+              <div class="filter-bar">
+                <div class="search-input-wrap">
+                  <input type="text" id="guest-search-input" class="form-control" placeholder="بحث بالاسم، الشركة، البريد أو الرمز..." data-i18n-placeholder="searchPlaceholder" />
+                </div>
+                <select id="guest-status-filter" class="form-control" style="width: auto;">
+                  <option value="ALL" data-i18n="filterAll">جميع الحالات</option>
+                  <option value="VALID" data-i18n="statusValid">صالحة للدخول</option>
+                  <option value="CHECKED_IN" data-i18n="statusCheckedIn">تم الحضور</option>
+                  <option value="CANCELLED" data-i18n="statusCancelledInv">ملغاة</option>
+                </select>
+              </div>
+
+              <div class="card-executive">
+                <div class="table-responsive">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th data-i18n="fullName">الاسم الكامل</th>
+                        <th data-i18n="company">الجهة / الشركة</th>
+                        <th data-i18n="email">البريد الإلكتروني</th>
+                        <th data-i18n="phone">الهاتف</th>
+                        <th data-i18n="companions">المرافقين</th>
+                        <th data-i18n="invitationStatus">الحالة</th>
+                        <th data-i18n="token">رمز التحقق</th>
+                        <th data-i18n="actions">الإجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody id="guests-table-body">
+                      <!-- Populated dynamically -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+
+            <!-- 5. IMPORT EXCEL PANEL -->
+            <section id="panel-import" class="content-panel" style="display: none;">
+              <div class="panel-header">
+                <div>
+                  <h2 data-i18n="importTitle">استيراد الضيوف من ملف إكسل</h2>
+                  <p data-i18n="importSubtitle">رفع ملفات .xlsx أو .csv لإضافة الدعوات دفعة واحدة وبسرعة فائقة</p>
+                </div>
+              </div>
+
+              <div class="card-executive">
+                <div class="dropzone" id="excel-dropzone">
+                  <div class="dropzone-icon">📊</div>
+                  <h3 data-i18n="dropExcel" style="margin-bottom: 0.5rem; font-weight: 700;">اسحب وأفلت ملف الإكسل هنا أو اضغط للاختيار من جهازك</h3>
+                  <p data-i18n="supportedFormats" style="color: var(--text-muted); font-size: 0.85rem;">الصيغ المدعومة: .xlsx, .xls, .csv (الحد الأقصى 5 ميجابايت)</p>
+                  <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" style="display: none;" />
                 </div>
 
-                <!-- Progress Bar during import -->
-                <div id="import-progress-container" style="display: none; margin-top: 1rem;">
-                  <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.35rem;">
-                    <span data-i18n="importing">Importing records in batches...</span>
-                    <span id="import-progress-text">0 / 0</span>
+                <!-- Preview & Validation Container -->
+                <div id="import-preview-section" style="display: none; margin-top: 1.5rem;">
+                  <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                    <div class="stat-widget-card" style="flex:1;">
+                      <span class="stat-title" data-i18n="validRows">صفوف صالحة</span>
+                      <div class="stat-number" id="import-count-valid" style="color: var(--status-green);">0</div>
+                    </div>
+                    <div class="stat-widget-card" style="flex:1;">
+                      <span class="stat-title" data-i18n="duplicateRows">مكررة / تنبيهات</span>
+                      <div class="stat-number" id="import-count-dup" style="color: var(--status-amber);">0</div>
+                    </div>
+                    <div class="stat-widget-card" style="flex:1;">
+                      <span class="stat-title" data-i18n="invalidRows">صفوف غير صالحة</span>
+                      <div class="stat-number" id="import-count-invalid" style="color: var(--status-red);">0</div>
+                    </div>
                   </div>
-                  <div class="progress-bar-wrap">
-                    <div class="progress-bar-fill" id="import-progress-bar" style="width: 0%;"></div>
+
+                  <!-- Preview Table -->
+                  <div class="table-responsive" style="max-height: 280px; overflow-y: auto; margin-bottom: 1rem;">
+                    <table class="data-table">
+                      <thead>
+                        <tr>
+                          <th>#</th>
+                          <th data-i18n="fullName">الاسم الكامل</th>
+                          <th data-i18n="company">الجهة / الشركة</th>
+                          <th data-i18n="email">البريد الإلكتروني</th>
+                          <th data-i18n="phone">الهاتف</th>
+                          <th data-i18n="companions">المرافقين</th>
+                          <th>نتيجة الفحص</th>
+                        </tr>
+                      </thead>
+                      <tbody id="import-preview-tbody"></tbody>
+                    </table>
+                  </div>
+
+                  <!-- Import Actions -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <button id="btn-download-import-errors" class="btn btn-secondary btn-sm" style="display: none;" data-i18n="downloadErrors">
+                      تحميل تقرير الأخطاء
+                    </button>
+                    <div style="display: flex; gap: 0.5rem; margin-inline-start: auto;">
+                      <button id="btn-cancel-import" class="btn btn-secondary" data-i18n="cancel">إلغاء</button>
+                      <button id="btn-confirm-import" class="btn btn-primary" data-i18n="startImport">تأكيد واستيراد الضيوف</button>
+                    </div>
+                  </div>
+
+                  <!-- Progress Bar during import -->
+                  <div id="import-progress-container" style="display: none; margin-top: 1rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.35rem;">
+                      <span data-i18n="importing">جاري الاستيراد على دفعات...</span>
+                      <span id="import-progress-text">0 / 0</span>
+                    </div>
+                    <div class="progress-bar-wrap">
+                      <div class="progress-bar-fill" id="import-progress-bar" style="width: 0%;"></div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </section>
+            </section>
 
-          <!-- 6. QR & BADGES PANEL -->
-          <section id="panel-qr" class="content-panel" style="display: none;">
-            <div class="panel-header">
-              <div>
-                <h2 data-i18n="qrTitle">Invitation Badges & QR Generator</h2>
-                <p data-i18n="qrSubtitle">Generate, preview and download personalized invitations with cryptographically unique tokens</p>
-              </div>
-              <button class="btn btn-secondary" id="btn-export-all-pdf" data-i18n="downloadPdf">
-                Download All Printable Badges (PDF)
-              </button>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;" id="qr-panel-grid">
-              <!-- Guest Picker -->
-              <div class="card">
-                <div class="card-title" data-i18n="selectGuestPreview">Select Guest to Preview Pass</div>
-                <div class="form-group">
-                  <label for="badge-guest-select" data-i18n="fullName">Guest Name</label>
-                  <select id="badge-guest-select" class="form-control">
-                    <!-- Populated dynamically -->
-                  </select>
+            <!-- 6. QR & BADGES PANEL -->
+            <section id="panel-qr" class="content-panel" style="display: none;">
+              <div class="panel-header">
+                <div>
+                  <h2 data-i18n="qrTitle">بطاقات الدعوة وتوليد رموز QR</h2>
+                  <p data-i18n="qrSubtitle">توليد ومعاينة وتحميل بطاقات الدعوة الشخصية برموز فريدة مشفرة</p>
                 </div>
-                <div id="badge-guest-details-box" style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: var(--radius-sm); font-size: 0.875rem; margin-bottom: 1rem;"></div>
-                <button class="btn btn-primary" id="btn-download-badge-png" style="width: 100%;" data-i18n="downloadPng">
-                  Download Badge (PNG)
+                <button class="btn btn-secondary" id="btn-export-all-pdf" data-i18n="downloadPdf">
+                  تحميل كافة البطاقات للطباعة (PDF)
                 </button>
               </div>
 
-              <!-- Badge Canvas Preview -->
-              <div class="card" style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                <canvas id="invitation-badge-canvas" style="max-width: 100%; height: auto; border-radius: var(--radius-md); box-shadow: var(--shadow-md); border: 1px solid var(--border-color);"></canvas>
-              </div>
-            </div>
-          </section>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;" id="qr-panel-grid">
+                <!-- Guest Picker -->
+                <div class="card-executive">
+                  <div style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem;" data-i18n="selectGuestPreview">اختر الضيف لمعاينة بطاقة الدعوة</div>
+                  <div class="form-group">
+                    <label for="badge-guest-select" data-i18n="fullName">اسم الضيف</label>
+                    <select id="badge-guest-select" class="form-control">
+                      <!-- Populated dynamically -->
+                    </select>
+                  </div>
+                  <div id="badge-guest-details-box" style="background: #f8fafc; border: 1px solid var(--border-color); padding: 1rem; border-radius: var(--radius-sm); font-size: 0.875rem; margin-bottom: 1rem;"></div>
+                  <button class="btn btn-primary btn-full" id="btn-download-badge-png" data-i18n="downloadPng">
+                    تحميل البطاقة (PNG)
+                  </button>
+                </div>
 
-          <!-- 7. CHECK-IN HISTORY & AUDIT PANEL -->
-          <section id="panel-history" class="content-panel" style="display: none;">
-            <div class="panel-header">
-              <div>
-                <h2 data-i18n="historyTitle">Check-in History & Security Logs</h2>
-                <p data-i18n="historySubtitle">Audited log of all entrance scans and administrative actions</p>
+                <!-- Badge Canvas Preview -->
+                <div class="card-executive" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 380px;">
+                  <canvas id="invitation-badge-canvas" style="max-width: 100%; height: auto; border-radius: var(--radius-md); box-shadow: var(--shadow-md); border: 1px solid var(--border-color);"></canvas>
+                </div>
               </div>
-              <button class="btn btn-secondary" id="btn-export-history-csv" data-i18n="exportCsv">Export CSV</button>
-            </div>
+            </section>
 
-            <!-- Filters -->
-            <div class="filter-bar">
-              <div class="search-input-wrap">
-                <input type="text" id="history-search-input" class="form-control" placeholder="Search by guest, token, or reason..." />
+            <!-- 7. CHECK-IN HISTORY & REPORTS PANEL -->
+            <section id="panel-history" class="content-panel" style="display: none;">
+              <div class="panel-header">
+                <div>
+                  <h2 data-i18n="historyTitle">سجل عمليات الدخول والمراجعة الأمنية</h2>
+                  <p data-i18n="historySubtitle">سجل كامل ودقيق لكافة عمليات المسح عند البوابات والإجراءات الإدارية</p>
+                </div>
+                <button class="btn btn-secondary" id="btn-export-history-csv" data-i18n="exportCsv">تصدير CSV</button>
               </div>
-              <select id="history-result-filter" class="form-control" style="width: auto;">
-                <option value="ALL" data-i18n="filterResult">All Results</option>
-                <option value="SUCCESS" data-i18n="resSuccess">Success (Approved)</option>
-                <option value="ALREADY_CHECKED_IN" data-i18n="resAlreadyUsed">Duplicate / Used</option>
-                <option value="INVALID_TOKEN" data-i18n="resInvalid">Invalid Token</option>
-                <option value="CANCELLED_INVITATION" data-i18n="resCancelled">Cancelled Invitation</option>
-              </select>
-            </div>
 
-            <div class="card">
-              <div class="table-responsive">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th data-i18n="timestamp">Timestamp</th>
-                      <th data-i18n="validationResult">Result</th>
-                      <th data-i18n="fullName">Guest Name</th>
-                      <th data-i18n="company">Company</th>
-                      <th data-i18n="token">Token</th>
-                      <th data-i18n="details">Details / Reason</th>
-                      <th data-i18n="employee">Staff</th>
-                    </tr>
-                  </thead>
-                  <tbody id="history-table-body">
-                    <!-- Populated dynamically -->
-                  </tbody>
-                </table>
+              <!-- Filters -->
+              <div class="filter-bar">
+                <div class="search-input-wrap">
+                  <input type="text" id="history-search-input" class="form-control" placeholder="بحث بالاسم، الرمز، أو سبب الرفض..." />
+                </div>
+                <select id="history-result-filter" class="form-control" style="width: auto;">
+                  <option value="ALL" data-i18n="filterResult">جميع النتائج</option>
+                  <option value="SUCCESS" data-i18n="resSuccess">دخول مصرح (ناجح)</option>
+                  <option value="ALREADY_CHECKED_IN" data-i18n="resAlreadyUsed">رمز مستخدم مسبقاً</option>
+                  <option value="INVALID_TOKEN" data-i18n="resInvalid">رمز غير صالح</option>
+                  <option value="CANCELLED_INVITATION" data-i18n="resCancelled">دعوة ملغاة</option>
+                </select>
               </div>
-            </div>
 
-            <!-- Audit Trail -->
-            <div class="card">
-              <div class="card-title" data-i18n="auditLogs">Administrative Audit Trail</div>
-              <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th data-i18n="timestamp">Time</th>
-                      <th data-i18n="actions">Action</th>
-                      <th data-i18n="details">Target</th>
-                      <th data-i18n="details">Details</th>
-                      <th data-i18n="employee">Actor</th>
-                    </tr>
-                  </thead>
-                  <tbody id="audit-table-body"></tbody>
-                </table>
+              <div class="card-executive" style="margin-bottom: 1.5rem;">
+                <div class="table-responsive">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th data-i18n="timestamp">الوقت</th>
+                        <th data-i18n="validationResult">النتيجة</th>
+                        <th data-i18n="fullName">اسم الضيف</th>
+                        <th data-i18n="company">الجهة / الشركة</th>
+                        <th data-i18n="token">رمز التحقق</th>
+                        <th data-i18n="details">التفاصيل / السبب</th>
+                        <th data-i18n="employee">الموظف</th>
+                      </tr>
+                    </thead>
+                    <tbody id="history-table-body">
+                      <!-- Populated dynamically -->
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          </section>
 
-          <!-- 8. STAFF ACCOUNTS PANEL -->
-          <section id="panel-employees" class="content-panel" style="display: none;">
-            <div class="panel-header">
-              <div>
-                <h2 data-i18n="navEmployees">Staff & Employee Accounts</h2>
-                <p data-i18n="staffAccountsSubtitle">Manage check-in staff members and entrance terminal permissions</p>
+              <!-- Audit Trail -->
+              <div class="card-executive">
+                <div style="font-size: 1rem; font-weight: 700; margin-bottom: 1rem;" data-i18n="auditLogs">سجل النشاط الإداري والرقابي</div>
+                <div class="table-responsive" style="max-height: 240px; overflow-y: auto;">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th data-i18n="timestamp">الوقت</th>
+                        <th data-i18n="actions">الإجراء</th>
+                        <th data-i18n="details">الهدف</th>
+                        <th data-i18n="details">التفاصيل</th>
+                        <th data-i18n="employee">المنفذ</th>
+                      </tr>
+                    </thead>
+                    <tbody id="audit-table-body"></tbody>
+                  </table>
+                </div>
               </div>
-              <button class="btn btn-primary" id="btn-open-create-staff" data-i18n="addStaffBtn">+ Add Staff Member</button>
-            </div>
+            </section>
 
-            <div class="card">
-              <div class="table-responsive">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th data-i18n="displayName">Display Name</th>
-                      <th data-i18n="email">Email</th>
-                      <th data-i18n="invitationStatus">Role</th>
-                      <th data-i18n="activeStatus">Active Status</th>
-                      <th data-i18n="createdDate">Created</th>
-                      <th data-i18n="actions">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="staff-table-body"></tbody>
-                </table>
+            <!-- 8. NOTIFICATIONS PANEL -->
+            <section id="panel-notifications" class="content-panel" style="display: none;">
+              <div class="panel-header">
+                <div>
+                  <h2 data-i18n="navNotifications">مركز الإشعارات والتنبيهات المباشرة</h2>
+                  <p>تنبيهات فورية لعمليات الدخول، التكرار، والأنشطة الإدارية الأخيرة</p>
+                </div>
               </div>
-            </div>
-          </section>
-        </main>
+
+              <div class="card-executive">
+                <div id="notifications-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                  <!-- Dynamic Notifications Feed -->
+                </div>
+              </div>
+            </section>
+
+            <!-- 9. SETTINGS & STAFF MANAGEMENT PANEL -->
+            <section id="panel-settings" class="content-panel" style="display: none;">
+              <div class="panel-header">
+                <div>
+                  <h2 data-i18n="navSettings">الإعدادات وحسابات النظام</h2>
+                  <p data-i18n="staffAccountsSubtitle">إدارة موظفي البوابات وصلاحيات تسجيل الحضور وضبط المزامنة السحابية</p>
+                </div>
+                <button class="btn btn-primary" id="btn-open-create-staff" data-i18n="addStaffBtn">+ إضافة موظف جديد</button>
+              </div>
+
+              <!-- Staff Accounts Card -->
+              <div class="card-executive" style="margin-bottom: 1.5rem;">
+                <div style="font-size: 1.05rem; font-weight: 700; margin-bottom: 1rem;" data-i18n="staffAccountsTitle">حسابات موظفي الاستقبال والبوابات</div>
+                <div class="table-responsive">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th data-i18n="displayName">الاسم المعروض</th>
+                        <th data-i18n="email">البريد الإلكتروني</th>
+                        <th data-i18n="invitationStatus">الدور</th>
+                        <th data-i18n="activeStatus">الحالة</th>
+                        <th data-i18n="createdDate">تاريخ الإنشاء</th>
+                        <th data-i18n="actions">الإجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody id="staff-table-body"></tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Firebase & Cloud Connection Settings -->
+              <div class="card-executive">
+                <div style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.5rem;" data-i18n="firebaseTitle">إعدادات فايربيس والمزامنة السحابية</div>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;" data-i18n="firebaseSubtitle">
+                  ربط مشروع Firebase السحابي الخاص بك أو ضبط المزامنة اللحظية
+                </p>
+
+                <div class="form-group">
+                  <label for="firebase-config-input" data-i18n="pasteConfigHelper">الصق كود إعدادات Firebase من لوحة تحكم فايربيس (JSON):</label>
+                  <textarea id="firebase-config-input" class="form-control" rows="4" style="font-family: monospace; font-size: 0.8rem;" placeholder='{"apiKey": "...", "projectId": "...", "firestoreRegion": "..."}'></textarea>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                  <button id="btn-save-firebase-config" class="btn btn-primary" data-i18n="saveConfig">حفظ والاتصال السحابي</button>
+                  <button id="btn-reset-demo-data" class="btn btn-secondary" data-i18n="resetDemoData">إعادة تعيين البيانات التجريبية</button>
+                </div>
+              </div>
+            </section>
+          </main>
+        </div>
       </div>
     </div>
 
@@ -575,39 +905,39 @@
     <div id="modal-guest" class="modal-overlay" style="display: none;">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 id="modal-guest-title" data-i18n="addGuestBtn">Add Guest</h3>
-          <button class="btn btn-secondary btn-sm close-modal-btn">✕</button>
+          <h3 id="modal-guest-title" data-i18n="addGuestBtn">إضافة ضيف جديد</h3>
+          <button class="close-modal-btn">✕</button>
         </div>
         <form id="form-guest">
           <div class="modal-body">
             <div class="form-group">
-              <label for="guest-name" data-i18n="fullName">Full Name *</label>
-              <input type="text" id="guest-name" class="form-control" required placeholder="e.g. Dr. Ahmed Hassan" />
+              <label for="guest-name" data-i18n="fullName">الاسم الكامل *</label>
+              <input type="text" id="guest-name" class="form-control" required placeholder="مثال: د. أحمد حسن" />
             </div>
             <div class="form-group">
-              <label for="guest-company" data-i18n="company">Company / Organization *</label>
-              <input type="text" id="guest-company" class="form-control" required placeholder="e.g. Tech Horizons Ltd." />
+              <label for="guest-company" data-i18n="company">الجهة / الشركة *</label>
+              <input type="text" id="guest-company" class="form-control" required placeholder="مثال: شركة آفاق التقنية" />
             </div>
             <div class="form-group">
-              <label for="guest-email" data-i18n="email">Email Address</label>
+              <label for="guest-email" data-i18n="email">البريد الإلكتروني</label>
               <input type="email" id="guest-email" class="form-control" placeholder="guest@example.com" />
             </div>
             <div class="form-group">
-              <label for="guest-phone" data-i18n="phone">Phone Number</label>
+              <label for="guest-phone" data-i18n="phone">رقم الهاتف</label>
               <input type="text" id="guest-phone" class="form-control" placeholder="+966 50 000 0000" />
             </div>
             <div class="form-group">
-              <label for="guest-companions" data-i18n="companions">Permitted Companions (Plus Ones)</label>
+              <label for="guest-companions" data-i18n="companions">عدد المرافقين المسموحين</label>
               <input type="number" id="guest-companions" class="form-control" min="0" max="10" value="0" />
             </div>
             <div class="form-group">
-              <label for="guest-notes">Notes / VIP Category</label>
-              <input type="text" id="guest-notes" class="form-control" placeholder="e.g. Keynote Speaker / Board Member" />
+              <label for="guest-notes" data-i18n="notesVipCategory">الملاحظات / فئة VIP</label>
+              <input type="text" id="guest-notes" class="form-control" placeholder="مثال: متحدث رئيسي / ضيف شرف" />
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary close-modal-btn" data-i18n="cancel">Cancel</button>
-            <button type="submit" class="btn btn-primary" data-i18n="addGuestBtn">Save Guest</button>
+            <button type="button" class="btn btn-secondary close-modal-btn" data-i18n="cancel">إلغاء</button>
+            <button type="submit" class="btn btn-primary" data-i18n="addGuestBtn">حفظ الضيف</button>
           </div>
         </form>
       </div>
@@ -617,50 +947,50 @@
     <div id="modal-event" class="modal-overlay" style="display: none;">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 id="modal-event-title" data-i18n="createEventTitle">Create New Event</h3>
-          <button class="btn btn-secondary btn-sm close-modal-btn">✕</button>
+          <h3 id="modal-event-title" data-i18n="createEventTitle">إضافة فعالية جديدة</h3>
+          <button class="close-modal-btn">✕</button>
         </div>
         <form id="form-event">
           <div class="modal-body">
             <div class="form-group">
-              <label for="event-name" data-i18n="eventName">Event Name *</label>
-              <input type="text" id="event-name" class="form-control" required placeholder="e.g. Annual Executive Summit 2026" />
+              <label for="event-name" data-i18n="eventName">اسم الفعالية *</label>
+              <input type="text" id="event-name" class="form-control" required placeholder="مثال: المؤتمر السنوي للقيادات 2026" />
             </div>
             <div class="form-group">
-              <label for="event-venue" data-i18n="eventVenue">Venue / Location *</label>
-              <input type="text" id="event-venue" class="form-control" required placeholder="e.g. Grand Metropolitan Convention Center" />
+              <label for="event-venue" data-i18n="eventVenue">المكان / القاعة *</label>
+              <input type="text" id="event-venue" class="form-control" required placeholder="مثال: مركز الرياض الدولي للمؤتمرات" />
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
               <div class="form-group">
-                <label for="event-start">Start Date & Time</label>
+                <label for="event-start">تاريخ ووقت البدء</label>
                 <input type="datetime-local" id="event-start" class="form-control" required />
               </div>
               <div class="form-group">
-                <label for="event-end">End Date & Time</label>
+                <label for="event-end">تاريخ ووقت الانتهاء</label>
                 <input type="datetime-local" id="event-end" class="form-control" required />
               </div>
             </div>
             <div class="form-group">
-              <label for="event-timezone" data-i18n="timeZone">Timezone</label>
-              <input type="text" id="event-timezone" class="form-control" value="UTC+3 (Riyadh / Dubai)" />
+              <label for="event-timezone" data-i18n="timeZone">المنطقة الزمنية</label>
+              <input type="text" id="event-timezone" class="form-control" value="UTC+3 (Riyadh / Cairo)" />
             </div>
             <div class="form-group">
-              <label for="event-status" data-i18n="eventStatus">Status</label>
+              <label for="event-status" data-i18n="eventStatus">الحالة</label>
               <select id="event-status" class="form-control">
-                <option value="Active">Active</option>
-                <option value="Draft">Draft</option>
-                <option value="Completed">Completed</option>
-                <option value="Cancelled">Cancelled</option>
+                <option value="Active">Active (نشطة)</option>
+                <option value="Draft">Draft (مسودة)</option>
+                <option value="Completed">Completed (مكتملة)</option>
+                <option value="Cancelled">Cancelled (ملغاة)</option>
               </select>
             </div>
             <div class="form-group">
-              <label for="event-desc" data-i18n="eventDesc">Description</label>
-              <textarea id="event-desc" class="form-control" rows="3" placeholder="Brief event overview..."></textarea>
+              <label for="event-desc" data-i18n="eventDesc">وصف الفعالية</label>
+              <textarea id="event-desc" class="form-control" rows="3" placeholder="نبذة عن الفعالية..."></textarea>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary close-modal-btn" data-i18n="cancel">Cancel</button>
-            <button type="submit" class="btn btn-primary" data-i18n="saveEvent">Save Event</button>
+            <button type="button" class="btn btn-secondary close-modal-btn" data-i18n="cancel">إلغاء</button>
+            <button type="submit" class="btn btn-primary" data-i18n="saveEvent">حفظ الفعالية</button>
           </div>
         </form>
       </div>
@@ -668,20 +998,20 @@
 
     <!-- Modal: Single Guest QR Badge Viewer -->
     <div id="modal-badge-view" class="modal-overlay" style="display: none;">
-      <div class="modal-content" style="max-width: 500px; text-align: center;">
+      <div class="modal-content" style="max-width: 480px; text-align: center;">
         <div class="modal-header">
-          <h3 data-i18n="viewBadge">VIP Invitation Pass</h3>
-          <button class="btn btn-secondary btn-sm close-modal-btn">✕</button>
+          <h3 data-i18n="viewBadge">معاينة بطاقة VIP</h3>
+          <button class="close-modal-btn">✕</button>
         </div>
         <div class="modal-body" style="display:flex; flex-direction:column; align-items:center;">
           <div id="modal-badge-canvas-wrap" style="width: 100%;">
-            <canvas id="modal-single-badge-canvas" style="max-width: 100%; border-radius: var(--radius-md); box-shadow: var(--shadow-md);"></canvas>
+            <canvas id="modal-single-badge-canvas" style="max-width: 100%; border-radius: var(--radius-md); box-shadow: var(--shadow-md); border: 1px solid var(--border-color);"></canvas>
           </div>
-          <div id="modal-badge-token-text" style="margin-top: 1rem; font-family: monospace; font-size: 1.1rem; color: #cbd5e1;"></div>
+          <div id="modal-badge-token-text" style="margin-top: 1rem; font-family: var(--font-mono); font-size: 1rem; font-weight: 600; color: var(--text-main); background: #f1f5f9; padding: 0.35rem 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color);"></div>
         </div>
-        <div class="modal-footer" style="justify-content: center; gap: 1rem;">
-          <button id="modal-download-badge-btn" class="btn btn-primary" data-i18n="downloadPng">Download Badge (PNG)</button>
-          <button type="button" class="btn btn-secondary close-modal-btn" data-i18n="cancel">Close</button>
+        <div class="modal-footer" style="justify-content: center; gap: 0.75rem;">
+          <button id="modal-download-badge-btn" class="btn btn-primary" data-i18n="downloadPng">تحميل البطاقة (PNG)</button>
+          <button type="button" class="btn btn-secondary close-modal-btn" data-i18n="close">إغلاق</button>
         </div>
       </div>
     </div>
@@ -690,44 +1020,44 @@
     <div id="modal-staff" class="modal-overlay" style="display: none;">
       <div class="modal-content">
         <div class="modal-header">
-          <h3 data-i18n="createStaffTitle">Create Check-in Staff Account</h3>
-          <button class="btn btn-secondary btn-sm close-modal-btn">✕</button>
+          <h3 data-i18n="createStaffTitle">إنشاء حساب موظف بوابة</h3>
+          <button class="close-modal-btn">✕</button>
         </div>
         <form id="form-staff">
           <div class="modal-body">
             <div class="form-group">
-              <label for="staff-name" data-i18n="staffNameLabel">Staff Member Name *</label>
-              <input type="text" id="staff-name" class="form-control" required placeholder="e.g. Entrance Gate 2 - Officer Khalid" />
+              <label for="staff-name" data-i18n="staffNameLabel">اسم الموظف أو البوابة *</label>
+              <input type="text" id="staff-name" class="form-control" required placeholder="مثال: بوابة 2 - الموظف خالد" />
             </div>
             <div class="form-group">
-              <label for="staff-email" data-i18n="staffEmailLabel">Staff Email Address *</label>
+              <label for="staff-email" data-i18n="staffEmailLabel">البريد الإلكتروني للموظف *</label>
               <input type="email" id="staff-email" class="form-control" required placeholder="gate2@event.org" />
             </div>
             <div class="form-group">
-              <label for="staff-password" data-i18n="staffPasswordLabel">Account Password *</label>
+              <label for="staff-password" data-i18n="staffPasswordLabel">كلمة المرور *</label>
               <div style="position: relative;">
                 <input type="password" id="staff-password" class="form-control" required minlength="6" placeholder="••••••••" style="padding-inline-end: 2.75rem;" />
                 <button type="button" id="btn-toggle-staff-pw" style="position: absolute; inset-inline-end: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.9rem; padding: 4px 6px;">
                   👁️
                 </button>
               </div>
-              <small style="color: var(--text-dim); font-size: 0.75rem; margin-top: 0.25rem; display: block;" data-i18n="staffPasswordHelp">
-                At least 6 characters. The employee will use this password to sign into the check-in terminal.
+              <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.25rem; display: block;" data-i18n="staffPasswordHelp">
+                6 أحرف أو أرقام على الأقل. سيستخدمها الموظف للدخول إلى محطة تسجيل الحضور.
               </small>
             </div>
-            <p style="font-size: 0.8rem; color: var(--text-dim); margin-top: 0.5rem;" data-i18n="staffNotice">
-              The staff account will have permissions restricted to scanning QR codes and checking in attendees. Administrative areas remain strictly protected.
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;" data-i18n="staffNotice">
+              حساب الموظف يمتلك صلاحيات مقتصرة حصرياً على فحص رموز QR وتسجيل الحضور دون إمكانية الوصول للإدارة أو تعديل القوائم.
             </p>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary close-modal-btn" data-i18n="cancel">Cancel</button>
-            <button type="submit" id="btn-submit-staff" class="btn btn-primary" data-i18n="createStaffTitle">Create Staff Member</button>
+            <button type="button" class="btn btn-secondary close-modal-btn" data-i18n="cancel">إلغاء</button>
+            <button type="submit" id="btn-submit-staff" class="btn btn-primary" data-i18n="createStaffTitle">إنشاء حساب الموظف</button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Load Main Vanilla JavaScript Application -->
+    <!-- Load Main Application Controller -->
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

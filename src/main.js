@@ -1,6 +1,6 @@
 /**
- * Main Vanilla JavaScript Application Controller
- * Connects all modules: Auth, Events, Guests, Scanner, Excel Import, Badges & Stats
+ * Main Application Controller - Executive Arabic & English Visual Identity
+ * Pixel-perfect adaptation matching Arabic Event Invitation Dashboard reference
  */
 
 import { initFirebase, localDB } from './firebase-config.js';
@@ -23,10 +23,41 @@ let employeeTodayScanCount = 0;
 document.addEventListener('DOMContentLoaded', () => {
   initFirebase();
   applyLanguageToDOM();
+  setupLiveClock();
   setupEventListeners();
   checkInitialSession();
   setupRealtimeListeners();
 });
+
+// Live Date & Time Clock Updater
+function setupLiveClock() {
+  updateLiveClock();
+  setInterval(updateLiveClock, 1000);
+}
+
+function updateLiveClock() {
+  const now = new Date();
+  const lang = getLanguage();
+  const timeEl = document.getElementById('header-live-time');
+  const dateEl = document.getElementById('header-live-date');
+
+  if (timeEl) {
+    timeEl.textContent = now.toLocaleTimeString(lang === 'ar' ? 'ar-EG' : 'en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+
+  if (dateEl) {
+    dateEl.textContent = now.toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  }
+}
 
 function setupEventListeners() {
   // Language toggle
@@ -35,7 +66,26 @@ function setupEventListeners() {
     langToggleBtn.addEventListener('click', () => {
       const next = getLanguage() === 'en' ? 'ar' : 'en';
       setLanguage(next);
+      updateLiveClock();
       renderCurrentPanel();
+      const currentUser = getSessionUser();
+      if (currentUser) updateAuthUI(currentUser);
+    });
+  }
+
+  // User profile dropdown toggle
+  const profileToggleBtn = document.getElementById('user-profile-toggle-btn');
+  const userDropdown = document.getElementById('user-dropdown');
+  if (profileToggleBtn && userDropdown) {
+    profileToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      userDropdown.classList.toggle('show');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!userDropdown.contains(e.target) && !profileToggleBtn.contains(e.target)) {
+        userDropdown.classList.remove('show');
+      }
     });
   }
 
@@ -82,6 +132,19 @@ function setupEventListeners() {
     });
   }
 
+  // Staff Password toggle
+  const toggleStaffPwBtn = document.getElementById('btn-toggle-staff-pw');
+  if (toggleStaffPwBtn) {
+    toggleStaffPwBtn.addEventListener('click', () => {
+      const passInput = document.getElementById('staff-password');
+      if (passInput.type === 'password') {
+        passInput.type = 'text';
+      } else {
+        passInput.type = 'password';
+      }
+    });
+  }
+
   // Logout
   const logoutBtn = document.getElementById('logout-btn');
   if (logoutBtn) {
@@ -89,6 +152,7 @@ function setupEventListeners() {
       stopCameraScanner();
       logoutUser();
       updateAuthUI(null);
+      if (userDropdown) userDropdown.classList.remove('show');
     });
   }
 
@@ -96,9 +160,34 @@ function setupEventListeners() {
   document.querySelectorAll('.nav-item').forEach(btn => {
     btn.addEventListener('click', () => {
       const targetPanel = btn.getAttribute('data-panel');
-      switchPanel(targetPanel);
+      if (targetPanel) switchPanel(targetPanel);
     });
   });
+
+  // Docked bottom quick scan button in sidebar
+  const dockedQuickScanBtn = document.getElementById('docked-quick-scan-btn');
+  if (dockedQuickScanBtn) {
+    dockedQuickScanBtn.addEventListener('click', () => {
+      switchPanel('panel-terminal');
+      triggerCameraStart();
+    });
+  }
+
+  // Notification Bell
+  const bellBtn = document.getElementById('btn-notifications-bell');
+  if (bellBtn) {
+    bellBtn.addEventListener('click', () => {
+      switchPanel('panel-notifications');
+    });
+  }
+
+  // Link "View all" in live check-ins card
+  const linkViewAll = document.getElementById('link-view-all-history');
+  if (linkViewAll) {
+    linkViewAll.addEventListener('click', () => {
+      switchPanel('panel-history');
+    });
+  }
 
   // Active Event Switcher in Header
   const activeEventSelect = document.getElementById('active-event-select');
@@ -114,20 +203,80 @@ function setupEventListeners() {
   if (quickAddGuestBtn) {
     quickAddGuestBtn.addEventListener('click', () => openAddGuestModal());
   }
-  const quickScanBtn = document.getElementById('dash-quick-scan');
-  if (quickScanBtn) {
-    quickScanBtn.addEventListener('click', () => switchPanel('panel-terminal'));
+
+  // Open Camera Button on Dashboard Card
+  const dashOpenCameraBtn = document.getElementById('dash-open-camera-btn');
+  if (dashOpenCameraBtn) {
+    dashOpenCameraBtn.addEventListener('click', () => {
+      switchPanel('panel-terminal');
+      triggerCameraStart();
+    });
+  }
+
+  // Upload QR Image Button & Hidden File Input
+  const dashUploadQrBtn = document.getElementById('dash-upload-qr-btn');
+  const qrFileInput = document.getElementById('qr-file-input');
+  if (dashUploadQrBtn && qrFileInput) {
+    dashUploadQrBtn.addEventListener('click', () => {
+      qrFileInput.click();
+    });
+
+    qrFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const originalHtml = dashUploadQrBtn.innerHTML;
+      try {
+        dashUploadQrBtn.disabled = true;
+        dashUploadQrBtn.textContent = 'جاري تحليل رمز QR...';
+
+        const Html5QrcodeClass = window.Html5Qrcode || (await import('html5-qrcode')).Html5Qrcode;
+        
+        let tempDiv = document.getElementById('temp-qr-scanner-box');
+        if (!tempDiv) {
+          tempDiv = document.createElement('div');
+          tempDiv.id = 'temp-qr-scanner-box';
+          tempDiv.style.display = 'none';
+          document.body.appendChild(tempDiv);
+        }
+
+        const scanner = new Html5QrcodeClass('temp-qr-scanner-box');
+        const token = await scanner.scanFile(file, false);
+        try { scanner.clear(); } catch (_) {}
+
+        if (token) {
+          const result = await handleTokenVerification(token);
+          renderDashboardStats();
+          renderLiveCheckinTable();
+          if (result.success) {
+            alert(`✅ ${t('entryApproved') || 'تم تأكيد الدخول بنجاح!'}\nالاسم: ${result.guest?.fullName || token}\nالشركة: ${result.guest?.company || ''}`);
+          } else {
+            alert(`⚠️ ${result.reason || t('invalidInvitation') || 'رمز غير صالح أو تم استخدامه مسبقاً.'}`);
+          }
+        }
+      } catch (err) {
+        alert('لم يتم العثور على رمز QR واضح في الصورة المرفوعة أو الرمز غير صالح.');
+      } finally {
+        dashUploadQrBtn.disabled = false;
+        dashUploadQrBtn.innerHTML = originalHtml;
+        qrFileInput.value = '';
+      }
+    });
+  }
+
+  // Switch to Import from Guests
+  const btnSwitchImport = document.getElementById('btn-switch-to-import');
+  if (btnSwitchImport) {
+    btnSwitchImport.addEventListener('click', () => {
+      switchPanel('panel-import');
+    });
   }
 
   // Guest Search & Status Filter
   const guestSearch = document.getElementById('guest-search-input');
   const guestFilter = document.getElementById('guest-status-filter');
-  if (guestSearch) {
-    guestSearch.addEventListener('input', () => renderGuestsTable());
-  }
-  if (guestFilter) {
-    guestFilter.addEventListener('change', () => renderGuestsTable());
-  }
+  if (guestSearch) guestSearch.addEventListener('input', () => renderGuestsTable());
+  if (guestFilter) guestFilter.addEventListener('change', () => renderGuestsTable());
 
   // Export CSV
   const exportGuestsCsvBtn = document.getElementById('btn-export-guests-csv');
@@ -262,43 +411,28 @@ function setupEventListeners() {
     });
   }
 
-  // Add Staff Form Submit
+  // Staff Account Form Submit
   const formStaff = document.getElementById('form-staff');
   if (formStaff) {
-    const btnTogglePw = document.getElementById('btn-toggle-staff-pw');
-    const inputPw = document.getElementById('staff-password');
-    if (btnTogglePw && inputPw) {
-      btnTogglePw.addEventListener('click', () => {
-        if (inputPw.type === 'password') {
-          inputPw.type = 'text';
-          btnTogglePw.textContent = '🔒';
-        } else {
-          inputPw.type = 'password';
-          btnTogglePw.textContent = '👁️';
-        }
-      });
-    }
-
     formStaff.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const submitBtn = document.getElementById('btn-submit-staff') || formStaff.querySelector('button[type="submit"]');
+      const submitBtn = document.getElementById('btn-submit-staff');
       const originalText = submitBtn ? submitBtn.textContent : '';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'جاري إنشاء الحساب في فايربيس...';
+      }
 
       const name = document.getElementById('staff-name').value;
       const email = document.getElementById('staff-email').value;
       const password = document.getElementById('staff-password').value;
 
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = t('creatingStaff') || 'جاري إنشاء الحساب في فايربيس...';
-      }
-
       try {
-        await createEmployeeAccount(name, email, password);
+        await createEmployeeAccount(email, password, name);
         closeAllModals();
         formStaff.reset();
         renderStaffTable();
-        alert(t('staffCreatedSuccess') || 'تم إنشاء حساب الموظف وربطه في Firebase بنجاح!');
+        alert('تم إنشاء حساب الموظف وربطه في Firebase بنجاح!');
       } catch (err) {
         alert(err.message || 'حدث خطأ أثناء إنشاء حساب الموظف.');
       } finally {
@@ -318,6 +452,35 @@ function setupEventListeners() {
 
   // Employee Scanner handlers
   setupScannerHandlers();
+
+  // Firebase Config Save
+  const btnSaveConfig = document.getElementById('btn-save-firebase-config');
+  if (btnSaveConfig) {
+    btnSaveConfig.addEventListener('click', () => {
+      const txt = document.getElementById('firebase-config-input')?.value.trim();
+      if (txt) {
+        try {
+          const config = JSON.parse(txt);
+          localStorage.setItem('custom_firebase_config', JSON.stringify(config));
+          alert('تم حفظ إعدادات Firebase بنجاح. سيتم إعادة تهيئة الاتصال الآن.');
+          location.reload();
+        } catch (e) {
+          alert('صيغة JSON غير صحيحة: ' + e.message);
+        }
+      }
+    });
+  }
+
+  // Reset Demo Data
+  const btnResetDemo = document.getElementById('btn-reset-demo-data');
+  if (btnResetDemo) {
+    btnResetDemo.addEventListener('click', () => {
+      if (confirm(t('resetConfirm'))) {
+        localStorage.clear();
+        location.reload();
+      }
+    });
+  }
 }
 
 function checkInitialSession() {
@@ -330,7 +493,6 @@ function updateAuthUI(user) {
   const authView = document.getElementById('view-authenticated');
   const userBadge = document.getElementById('user-badge');
   const eventWrap = document.getElementById('header-event-selector-wrap');
-  const sidebar = document.getElementById('app-sidebar');
 
   if (!user) {
     loginView.style.display = 'flex';
@@ -345,18 +507,25 @@ function updateAuthUI(user) {
   userBadge.style.display = 'flex';
   eventWrap.style.display = 'flex';
 
-  document.getElementById('user-display-name').textContent = user.displayName;
+  const displayName = user.displayName || user.email.split('@')[0];
+  document.getElementById('user-display-name').textContent = displayName;
+
+  const initialEl = document.getElementById('user-avatar-initial');
+  if (initialEl) {
+    initialEl.textContent = displayName.charAt(0).toUpperCase();
+  }
+
   const roleTag = document.getElementById('user-role-tag');
-  roleTag.textContent = user.role;
-  roleTag.className = `role-tag ${user.role.toLowerCase()}`;
+  if (roleTag) {
+    const isAr = getLanguage() === 'ar';
+    roleTag.textContent = user.role === 'ADMIN' ? (isAr ? 'مدير النظام' : 'Admin') : (isAr ? 'موظف' : 'Staff');
+  }
 
   // Role Protection
   if (user.role === 'EMPLOYEE') {
-    // Hide all admin nav items
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
     switchPanel('panel-terminal');
   } else {
-    // Admin has access to all
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'flex');
     populateEventsDropdown();
     switchPanel('panel-dashboard');
@@ -389,7 +558,6 @@ function switchPanel(panelId) {
 
 function renderCurrentPanel() {
   populateEventsDropdown();
-  updateEventHeaderTitles();
 
   switch (currentPanel) {
     case 'panel-dashboard':
@@ -409,22 +577,16 @@ function renderCurrentPanel() {
       renderHistoryTable();
       renderAuditTable();
       break;
-    case 'panel-employees':
+    case 'panel-notifications':
+      renderNotificationsPanel();
+      break;
+    case 'panel-settings':
       renderStaffTable();
       break;
     case 'panel-terminal':
       renderTerminalHeader();
       break;
   }
-}
-
-function updateEventHeaderTitles() {
-  const activeEvent = getActiveEvent();
-  const title = activeEvent ? activeEvent.name : 'No Event Selected';
-  const dashTitle = document.getElementById('dashboard-active-event-title');
-  if (dashTitle) dashTitle.textContent = title;
-  const termTitle = document.getElementById('terminal-event-name');
-  if (termTitle) termTitle.textContent = title;
 }
 
 function populateEventsDropdown() {
@@ -454,9 +616,7 @@ function renderDashboardStats() {
     document.getElementById('stat-checked-in').textContent = '0';
     document.getElementById('stat-yet-to-arrive').textContent = '0';
     document.getElementById('stat-cancelled').textContent = '0';
-    document.getElementById('stat-attendance-rate').textContent = '0%';
-    const bar = document.getElementById('stat-progress-bar');
-    if (bar) bar.style.width = '0%';
+    updateAttendanceGauge(0);
     return;
   }
 
@@ -466,10 +626,23 @@ function renderDashboardStats() {
   document.getElementById('stat-checked-in').textContent = stats.checkedIn;
   document.getElementById('stat-yet-to-arrive').textContent = stats.yetToArrive;
   document.getElementById('stat-cancelled').textContent = stats.cancelled;
-  document.getElementById('stat-attendance-rate').textContent = `${stats.attendanceRate}%`;
+  updateAttendanceGauge(stats.attendanceRate);
+}
 
-  const bar = document.getElementById('stat-progress-bar');
-  if (bar) bar.style.width = `${stats.attendanceRate}%`;
+function updateAttendanceGauge(percentage) {
+  const radius = 38;
+  const circumference = 2 * Math.PI * radius; // 238.761
+  const fillCircle = document.getElementById('gauge-circle-fill');
+  const textEl = document.getElementById('stat-attendance-rate');
+
+  if (textEl) {
+    textEl.textContent = `${percentage}%`;
+  }
+
+  if (fillCircle) {
+    const offset = circumference - (percentage / 100) * circumference;
+    fillCircle.style.strokeDashoffset = offset;
+  }
 }
 
 function renderLiveCheckinTable() {
@@ -480,18 +653,18 @@ function renderLiveCheckinTable() {
   const recent = getRecentCheckins(activeEvent?.id, 8);
 
   if (recent.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-dim); padding:1.5rem;">${t('noRecentActivity')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:2rem;">${t('noRecentActivity')}</td></tr>`;
     return;
   }
 
   tbody.innerHTML = recent.map(c => `
     <tr>
-      <td>${new Date(c.timestamp).toLocaleTimeString()}</td>
-      <td style="font-weight:600; color:#fff;">${c.guestName}</td>
-      <td>${c.company || '—'}</td>
-      <td><span class="token-code">${c.token}</span></td>
-      <td>${c.employeeName || 'Staff'}</td>
-      <td><span class="status-pill checked_in">${t('statusCheckedIn')}</span></td>
+      <td style="font-size:0.85rem; color:var(--text-muted);">${new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</td>
+      <td style="font-weight:700; color:var(--text-main);">${c.guestName}</td>
+      <td style="color:var(--text-body);">${c.company || '—'}</td>
+      <td><span class="token-pill">${c.token}</span></td>
+      <td style="color:var(--text-muted); font-size:0.85rem;">${c.employeeName || 'Staff'}</td>
+      <td><span class="badge-status checked-in">${t('statusCheckedIn')}</span></td>
     </tr>
   `).join('');
 }
@@ -504,7 +677,7 @@ function renderEventsTable() {
   const activeId = getActiveEventId();
 
   if (events.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-dim); padding:1.5rem;">${t('noActiveEventSelected')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:2rem;">${t('noActiveEventSelected')}</td></tr>`;
     return;
   }
 
@@ -513,16 +686,16 @@ function renderEventsTable() {
     const translatedStatus = t(statusKey) || e.status;
     return `
       <tr>
-        <td style="font-weight:600; color:#fff;">
+        <td style="font-weight:700; color:var(--text-main);">
           ${e.name}
-          ${e.id === activeId ? `<span class="status-pill valid" style="margin-inline-start:6px; font-size:0.65rem;">${t('currentBadge')}</span>` : ''}
+          ${e.id === activeId ? `<span class="badge-status valid" style="margin-inline-start:6px; font-size:0.7rem;">${t('currentBadge')}</span>` : ''}
         </td>
         <td>${e.venue}</td>
-        <td style="font-size:0.8rem; color:var(--text-muted);">${e.startAt ? new Date(e.startAt).toLocaleString() : '—'}</td>
-        <td style="font-size:0.8rem;">${e.timeZone}</td>
-        <td><span class="status-pill ${e.status.toLowerCase()}">${translatedStatus}</span></td>
+        <td style="font-size:0.82rem; color:var(--text-muted);">${e.startAt ? new Date(e.startAt).toLocaleString() : '—'}</td>
+        <td style="font-size:0.82rem;">${e.timeZone}</td>
+        <td><span class="badge-status ${e.status.toLowerCase()}">${translatedStatus}</span></td>
         <td>
-          ${e.id !== activeId ? `<button class="btn btn-secondary btn-sm btn-activate-event" data-id="${e.id}">${t('setActiveBtn')}</button>` : `<span style="color:#10b981; font-size:0.8rem;">${t('currentBadge')}</span>`}
+          ${e.id !== activeId ? `<button class="btn btn-secondary btn-sm btn-activate-event" data-id="${e.id}">${t('setActiveBtn')}</button>` : `<span style="color:var(--status-green-text); font-weight:700; font-size:0.82rem;">${t('currentBadge')}</span>`}
         </td>
       </tr>
     `;
@@ -544,7 +717,7 @@ function renderGuestsTable() {
 
   const activeEvent = getActiveEvent();
   if (!activeEvent) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:1.5rem;">${t('noActiveEventTerminal')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-muted);">${t('noActiveEventSelected')}</td></tr>`;
     return;
   }
 
@@ -553,7 +726,7 @@ function renderGuestsTable() {
   const guests = getGuestsForEvent(activeEvent.id, { search, status });
 
   if (guests.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-dim); padding:1.5rem;">${t('noGuestsMatch')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:2rem;">${t('noGuestsMatch')}</td></tr>`;
     return;
   }
 
@@ -563,18 +736,19 @@ function renderGuestsTable() {
     const statusText = g.invitationStatus === 'VALID' ? t('statusValid') :
                        g.invitationStatus === 'CHECKED_IN' ? t('statusCheckedIn') :
                        g.invitationStatus === 'CANCELLED' ? t('statusCancelledInv') : t('statusRevoked');
+    const badgeClass = g.invitationStatus.toLowerCase().replace('_', '-');
 
     return `
       <tr>
-        <td style="font-weight:600; color:#fff;">${g.fullName}</td>
+        <td style="font-weight:700; color:var(--text-main);">${g.fullName}</td>
         <td>${g.company}</td>
-        <td style="font-size:0.8rem; color:var(--text-muted);">${g.email || '—'}</td>
-        <td style="font-size:0.8rem;">${g.phone || '—'}</td>
-        <td style="text-align:center;">${g.companionLimit || 0}</td>
-        <td><span class="status-pill ${g.invitationStatus.toLowerCase()}">${statusText}</span></td>
-        <td><span class="token-code">${g.token}</span></td>
+        <td style="font-size:0.82rem; color:var(--text-muted);">${g.email || '—'}</td>
+        <td style="font-size:0.82rem;">${g.phone || '—'}</td>
+        <td style="text-align:center; font-weight:600;">${g.companionLimit || 0}</td>
+        <td><span class="badge-status ${badgeClass}">${statusText}</span></td>
+        <td><span class="token-pill">${g.token}</span></td>
         <td>
-          <div style="display:flex; gap:4px;">
+          <div style="display:flex; gap:6px;">
             <button class="btn btn-secondary btn-sm btn-view-badge" data-id="${g.id}" title="${t('viewBadge')}">🪪</button>
             <button class="btn btn-secondary btn-sm btn-reissue-guest" data-id="${g.id}" title="${t('reissue')}">🔄</button>
             ${!isCancelled && !isCheckedIn ? `<button class="btn btn-danger btn-sm btn-cancel-guest" data-id="${g.id}" title="${t('cancelInvitation')}">✕</button>` : ''}
@@ -714,15 +888,15 @@ async function processImportFile(file) {
     tbody.innerHTML = allPreview.map(r => `
       <tr>
         <td>${r.rowNumber}</td>
-        <td style="font-weight:600; color:#fff;">${r.fullName || '<span style="color:#ef4444;">Missing</span>'}</td>
-        <td>${r.company || '<span style="color:#ef4444;">Missing</span>'}</td>
-        <td>${r.email || '—'}</td>
-        <td>${r.phone || '—'}</td>
-        <td>${r.companionLimit || 0}</td>
+        <td style="font-weight:700; color:var(--text-main);">${r.fullName || '<span style="color:var(--status-red);">Missing</span>'}</td>
+        <td>${r.company || '<span style="color:var(--status-red);">Missing</span>'}</td>
+        <td style="font-size:0.82rem; color:var(--text-muted);">${r.email || '—'}</td>
+        <td style="font-size:0.82rem;">${r.phone || '—'}</td>
+        <td style="text-align:center;">${r.companionLimit || 0}</td>
         <td>
-          ${r.status === 'valid' ? '<span class="status-pill valid">Ready</span>' : 
-            r.status === 'dup' ? `<span class="status-pill revoked">${r.reason}</span>` : 
-            `<span class="status-pill cancelled">${r.reason}</span>`}
+          ${r.status === 'valid' ? '<span class="badge-status valid">جاهز للاستيراد</span>' : 
+            r.status === 'dup' ? `<span class="badge-status warning">${r.reason}</span>` : 
+            `<span class="badge-status cancelled">${r.reason}</span>`}
         </td>
       </tr>
     `).join('');
@@ -802,13 +976,14 @@ async function renderBadgePreview(guest) {
   const statusText = guest.invitationStatus === 'VALID' ? t('statusValid') :
                      guest.invitationStatus === 'CHECKED_IN' ? t('statusCheckedIn') :
                      guest.invitationStatus === 'CANCELLED' ? t('statusCancelledInv') : t('statusRevoked');
+  const badgeClass = guest.invitationStatus.toLowerCase().replace('_', '-');
 
   if (infoBox) {
     infoBox.innerHTML = `
-      <div><strong>${t('attendeeLabel')}:</strong> ${guest.fullName}</div>
-      <div><strong>${t('company')}:</strong> ${guest.company}</div>
-      <div><strong>${t('invitationStatus')}:</strong> <span class="status-pill ${guest.invitationStatus.toLowerCase()}">${statusText}</span></div>
-      <div style="margin-top:0.35rem;"><strong>${t('uniqueTokenLabel')}:</strong> <span class="token-code">${guest.token}</span></div>
+      <div style="margin-bottom:0.35rem;"><strong>الاسم:</strong> ${guest.fullName}</div>
+      <div style="margin-bottom:0.35rem;"><strong>الجهة / الشركة:</strong> ${guest.company}</div>
+      <div style="margin-bottom:0.35rem;"><strong>الحالة:</strong> <span class="badge-status ${badgeClass}">${statusText}</span></div>
+      <div style="margin-top:0.5rem;"><strong>رمز الدعوة:</strong> <span class="token-pill">${guest.token}</span></div>
     `;
   }
 
@@ -841,34 +1016,19 @@ function setupScannerHandlers() {
   const btnStart = document.getElementById('btn-start-camera');
   const btnStop = document.getElementById('btn-stop-camera');
   const btnNext = document.getElementById('btn-next-scan');
-  const idleOverlay = document.getElementById('scanner-idle-overlay');
 
   if (btnStart) {
-    btnStart.addEventListener('click', async () => {
-      try {
-        idleOverlay.style.display = 'none';
-        btnStart.style.display = 'none';
-        btnStop.style.display = 'inline-flex';
-        btnNext.style.display = 'inline-flex';
-
-        await startCameraScanner('scanner-viewport', onScanReceived, onScanError);
-      } catch (e) {
-        alert('Could not start camera: ' + e.message + '\nPlease check camera permissions.');
-        idleOverlay.style.display = 'flex';
-        btnStart.style.display = 'inline-flex';
-        btnStop.style.display = 'none';
-        btnNext.style.display = 'none';
-      }
-    });
+    btnStart.addEventListener('click', triggerCameraStart);
   }
 
   if (btnStop) {
     btnStop.addEventListener('click', async () => {
       await stopCameraScanner();
-      idleOverlay.style.display = 'flex';
+      const idleOverlay = document.getElementById('scanner-idle-overlay');
+      if (idleOverlay) idleOverlay.style.display = 'flex';
       btnStart.style.display = 'inline-flex';
       btnStop.style.display = 'none';
-      btnNext.style.display = 'none';
+      if (btnNext) btnNext.style.display = 'none';
     });
   }
 
@@ -909,6 +1069,28 @@ function setupScannerHandlers() {
   }
 }
 
+async function triggerCameraStart() {
+  const btnStart = document.getElementById('btn-start-camera');
+  const btnStop = document.getElementById('btn-stop-camera');
+  const btnNext = document.getElementById('btn-next-scan');
+  const idleOverlay = document.getElementById('scanner-idle-overlay');
+
+  try {
+    if (idleOverlay) idleOverlay.style.display = 'none';
+    if (btnStart) btnStart.style.display = 'none';
+    if (btnStop) btnStop.style.display = 'inline-flex';
+    if (btnNext) btnNext.style.display = 'inline-flex';
+
+    await startCameraScanner('scanner-viewport', onScanReceived, onScanError);
+  } catch (e) {
+    alert('تعذر تشغيل الكاميرا: ' + e.message + '\nيرجى التأكد من منح صلاحية استخدام الكاميرا.');
+    if (idleOverlay) idleOverlay.style.display = 'flex';
+    if (btnStart) btnStart.style.display = 'inline-flex';
+    if (btnStop) btnStop.style.display = 'none';
+    if (btnNext) btnNext.style.display = 'none';
+  }
+}
+
 function onScanReceived(result) {
   const container = document.getElementById('scan-result-container');
   if (!container || !result) return;
@@ -924,45 +1106,45 @@ function onScanReceived(result) {
     renderLiveCheckinTable();
     renderGuestsTable();
 
-    container.className = 'result-banner success';
+    container.className = 'scan-result-card success';
     container.innerHTML = `
       <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">✅</div>
-      <h3 style="margin: 0 0 0.5rem 0;">${t('entryApproved')}</h3>
-      <p style="color:#d1fae5; font-size:0.95rem; margin-bottom: 0.75rem;">${t('checkinSuccessMsg')}</p>
-      <div class="guest-result-details">
-        <div><strong>${t('fullName')}:</strong> ${result.guest.fullName}</div>
-        <div><strong>${t('company')}:</strong> ${result.guest.company}</div>
-        <div><strong>${t('firstScanAt')}</strong> ${new Date(result.checkinTime).toLocaleTimeString()}</div>
-        ${result.guest.companionLimit > 0 ? `<div style="color:#34d399; margin-top:4px;"><strong>+ ${result.guest.companionLimit} ${t('companions')}</strong></div>` : ''}
+      <h3 style="margin: 0 0 0.5rem 0; font-weight:800;">دخول مصرح (ناجح)</h3>
+      <p style="font-size:0.95rem; margin-bottom: 0.75rem;">تم تسجيل الحضور والمزامنة اللحظية بنجاح.</p>
+      <div style="background: rgba(255,255,255,0.6); padding: 0.85rem; border-radius: var(--radius-sm); font-size: 0.88rem; line-height: 1.6;">
+        <div><strong>الاسم:</strong> ${result.guest.fullName}</div>
+        <div><strong>الجهة:</strong> ${result.guest.company}</div>
+        <div><strong>وقت الدخول:</strong> ${new Date(result.checkinTime).toLocaleTimeString()}</div>
+        ${result.guest.companionLimit > 0 ? `<div style="color:var(--status-green-text); font-weight:700; margin-top:4px;"><strong>+ ${result.guest.companionLimit} مرافقين</strong></div>` : ''}
       </div>
-      <button class="btn btn-secondary btn-sm" id="btn-banner-next-guest" style="margin-top: 0.75rem; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff;">
-        ${t('nextGuestBtn')} ➔
+      <button class="btn btn-primary btn-sm" id="btn-banner-next-guest" style="margin-top: 1rem;">
+        فحص الضيف التالي ➔
       </button>
     `;
   } else if (result.code === 'ALREADY_CHECKED_IN') {
-    container.className = 'result-banner duplicate';
+    container.className = 'scan-result-card error';
     container.innerHTML = `
       <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">⚠️</div>
-      <h3 style="margin: 0 0 0.5rem 0;">${t('alreadyCheckedIn')}</h3>
-      <p style="color:#fde68a; font-size:0.95rem; margin-bottom: 0.75rem;">${result.reason}</p>
+      <h3 style="margin: 0 0 0.5rem 0; font-weight:800;">رمز مستخدم مسبقاً!</h3>
+      <p style="font-size:0.95rem; margin-bottom: 0.75rem;">${result.reason}</p>
       ${result.guest ? `
-        <div class="guest-result-details">
-          <div><strong>${t('fullName')}:</strong> ${result.guest.fullName}</div>
-          <div><strong>${t('company')}:</strong> ${result.guest.company}</div>
+        <div style="background: rgba(255,255,255,0.6); padding: 0.85rem; border-radius: var(--radius-sm); font-size: 0.88rem;">
+          <div><strong>الاسم:</strong> ${result.guest.fullName}</div>
+          <div><strong>الجهة:</strong> ${result.guest.company}</div>
         </div>
       ` : ''}
-      <button class="btn btn-secondary btn-sm" id="btn-banner-next-guest" style="margin-top: 0.75rem; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff;">
-        ${t('nextGuestBtn')} ➔
+      <button class="btn btn-secondary btn-sm" id="btn-banner-next-guest" style="margin-top: 1rem;">
+        فحص الضيف التالي ➔
       </button>
     `;
   } else {
-    container.className = 'result-banner invalid';
+    container.className = 'scan-result-card error';
     container.innerHTML = `
       <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">❌</div>
-      <h3 style="margin: 0 0 0.5rem 0;">${result.code === 'CANCELLED_INVITATION' ? t('invitationRevoked') : t('invalidInvitation')}</h3>
-      <p style="color:#fecaca; font-size:0.95rem; margin-bottom: 0.75rem;">${result.reason || 'Entry forbidden'}</p>
-      <button class="btn btn-secondary btn-sm" id="btn-banner-next-guest" style="margin-top: 0.75rem; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff;">
-        ${t('nextGuestBtn')} ➔
+      <h3 style="margin: 0 0 0.5rem 0; font-weight:800;">${result.code === 'CANCELLED_INVITATION' ? 'دعوة ملغاة' : 'رمز غير صالح'}</h3>
+      <p style="font-size:0.95rem; margin-bottom: 0.75rem;">${result.reason || 'الدخول غير مسموح'}</p>
+      <button class="btn btn-secondary btn-sm" id="btn-banner-next-guest" style="margin-top: 1rem;">
+        فحص الضيف التالي ➔
       </button>
     `;
   }
@@ -977,11 +1159,14 @@ function onScanReceived(result) {
 }
 
 function onScanError(err) {
-  console.warn('Scanner error:', err);
+  // Non-critical frame error
 }
 
 function renderTerminalHeader() {
-  updateEventHeaderTitles();
+  const activeEvent = getActiveEvent();
+  const title = activeEvent ? activeEvent.name : 'لم يتم اختيار فعالية';
+  const termTitle = document.getElementById('terminal-event-name');
+  if (termTitle) termTitle.textContent = title;
 }
 
 // 8. HISTORY & AUDIT
@@ -996,25 +1181,25 @@ function renderHistoryTable() {
   const history = getCheckinHistory(activeEvent?.id, { search, result });
 
   if (history.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-dim); padding:1.5rem;">${t('noHistoryRecords')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:2rem;">لا توجد سجلات دخول مسجلة حالياً.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = history.map(h => {
     const isSuccess = h.result === 'SUCCESS';
     const isDup = h.result === 'ALREADY_CHECKED_IN';
-    const pillClass = isSuccess ? 'valid' : isDup ? 'revoked' : 'cancelled';
-    const resText = isSuccess ? t('resSuccess') : isDup ? t('resAlreadyUsed') : h.result === 'INVALID_TOKEN' ? t('resInvalid') : t('resCancelled');
+    const pillClass = isSuccess ? 'success' : isDup ? 'warning' : 'cancelled';
+    const resText = isSuccess ? 'دخول مصرح' : isDup ? 'مستخدم مسبقاً' : h.result === 'INVALID_TOKEN' ? 'رمز غير صالح' : 'دعوة ملغاة';
 
     return `
       <tr>
-        <td style="font-size:0.8rem; color:var(--text-muted);">${new Date(h.timestamp).toLocaleString()}</td>
-        <td><span class="status-pill ${pillClass}">${resText}</span></td>
-        <td style="font-weight:600; color:#fff;">${h.guestName}</td>
+        <td style="font-size:0.82rem; color:var(--text-muted);">${new Date(h.timestamp).toLocaleString()}</td>
+        <td><span class="badge-status ${pillClass}">${resText}</span></td>
+        <td style="font-weight:700; color:var(--text-main);">${h.guestName}</td>
         <td>${h.company}</td>
-        <td><span class="token-code">${h.token}</span></td>
-        <td style="font-size:0.8rem; color:var(--text-muted);">${h.details || '—'}</td>
-        <td style="font-size:0.8rem;">${h.employeeName || 'Staff'}</td>
+        <td><span class="token-pill">${h.token}</span></td>
+        <td style="font-size:0.82rem; color:var(--text-muted);">${h.details || '—'}</td>
+        <td style="font-size:0.82rem;">${h.employeeName || 'Staff'}</td>
       </tr>
     `;
   }).join('');
@@ -1026,46 +1211,72 @@ function renderAuditTable() {
 
   const logs = (localDB.data.auditLogs || []).slice(0, 30);
   if (logs.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-dim); padding:1rem;">${t('noAuditLogs')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:1.5rem;">لا توجد إجراءات إدارية مسجلة.</td></tr>`;
     return;
   }
 
   tbody.innerHTML = logs.map(l => `
     <tr>
-      <td style="font-size:0.8rem; color:var(--text-muted);">${new Date(l.timestamp).toLocaleTimeString()}</td>
-      <td style="font-weight:600; color:#cbd5e1;">${l.action}</td>
-      <td style="font-size:0.8rem;">${l.targetType}</td>
-      <td style="font-size:0.8rem; color:var(--text-muted);">${l.details}</td>
-      <td style="font-size:0.8rem;">${l.actorUid}</td>
+      <td style="font-size:0.82rem; color:var(--text-muted);">${new Date(l.timestamp).toLocaleTimeString()}</td>
+      <td style="font-weight:700; color:var(--text-main);">${l.action}</td>
+      <td style="font-size:0.82rem;">${l.targetType}</td>
+      <td style="font-size:0.82rem; color:var(--text-muted);">${l.details}</td>
+      <td style="font-size:0.82rem;">${l.actorUid}</td>
     </tr>
   `).join('');
 }
 
-// 9. STAFF ACCOUNTS
+// 9. NOTIFICATIONS FEED
+function renderNotificationsPanel() {
+  const container = document.getElementById('notifications-list');
+  if (!container) return;
+  const activeEvent = getActiveEvent();
+  const recent = getRecentCheckins(activeEvent?.id, 20);
+
+  if (recent.length === 0) {
+    container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 2.5rem;">لا توجد تنبيهات جديدة مسجلة حالياً.</div>`;
+    return;
+  }
+
+  container.innerHTML = recent.map(r => `
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: #f8fafc; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+      <div style="display: flex; align-items: center; gap: 0.85rem;">
+        <span style="font-size: 1.35rem;">✅</span>
+        <div>
+          <div style="font-weight: 700; color: var(--text-main); font-size: 0.92rem;">تم تسجيل دخول: ${r.guestName}</div>
+          <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">${r.company || '—'} · رمز الدعوة: <span class="token-pill">${r.token}</span></div>
+        </div>
+      </div>
+      <div style="font-size: 0.82rem; color: var(--text-muted); font-weight: 500;">${new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+    </div>
+  `).join('');
+}
+
+// 10. STAFF ACCOUNTS
 function renderStaffTable() {
   const tbody = document.getElementById('staff-table-body');
   if (!tbody) return;
 
   const staff = Object.values(localDB.data.users).filter(u => u.role === 'EMPLOYEE');
   if (staff.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:1.5rem;">${t('noStaffAccounts')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">${t('noStaffAccounts')}</td></tr>`;
     return;
   }
 
   tbody.innerHTML = staff.map(u => `
     <tr>
-      <td style="font-weight:600; color:#fff;">${u.displayName}</td>
+      <td style="font-weight:700; color:var(--text-main);">${u.displayName}</td>
       <td>${u.email}</td>
-      <td><span class="role-tag employee">${t('roleEmployee')}</span></td>
+      <td><span class="badge-status valid">${t('roleEmployee')}</span></td>
       <td>
-        <span class="status-pill ${u.active ? 'valid' : 'cancelled'}">
-          ${u.active ? t('activeLabel') : t('disabledLabel')}
+        <span class="badge-status ${u.active ? 'success' : 'cancelled'}">
+          ${u.active ? t('activeBadge') : t('inactiveBadge')}
         </span>
       </td>
-      <td style="font-size:0.8rem; color:var(--text-muted);">${new Date(u.createdAt).toLocaleDateString()}</td>
+      <td style="font-size:0.82rem; color:var(--text-muted);">${new Date(u.createdAt).toLocaleDateString()}</td>
       <td>
         <button class="btn btn-secondary btn-sm btn-toggle-staff" data-uid="${u.uid}" data-active="${u.active}">
-          ${u.active ? t('disableBtn') : t('enableBtn')}
+          ${u.active ? 'تعطيل' : 'تفعيل'}
         </button>
       </td>
     </tr>
@@ -1105,6 +1316,8 @@ function setupRealtimeListeners() {
       renderAuditTable();
     } else if (currentPanel === 'panel-guests') {
       renderGuestsTable();
+    } else if (currentPanel === 'panel-notifications') {
+      renderNotificationsPanel();
     }
   });
 }
