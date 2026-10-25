@@ -575,7 +575,6 @@ function renderCurrentPanel() {
       break;
     case 'panel-history':
       renderHistoryTable();
-      renderAuditTable();
       break;
     case 'panel-notifications':
       renderNotificationsPanel();
@@ -763,11 +762,24 @@ function renderGuestsTable() {
     b.addEventListener('click', () => openSingleBadgeModal(b.getAttribute('data-id')));
   });
   document.querySelectorAll('.btn-reissue-guest').forEach(b => {
-    b.addEventListener('click', () => {
-      if (confirm(t('confirmReissue'))) {
-        reissueInvitation(b.getAttribute('data-id'));
-        renderGuestsTable();
-        renderDashboardStats();
+    b.addEventListener('click', async () => {
+      const guestId = b.getAttribute('data-id');
+      const guest = getGuestById(guestId);
+      const guestName = guest?.fullName || '';
+
+      if (confirm(`هل تريد بالتأكيد إعادة توليد رمز QR جديد للضيف "${guestName}"؟\nسيتم إبطال الرمز القديم تماماً وتفعيل الرمز الجديد.`)) {
+        b.disabled = true;
+        try {
+          const updated = await reissueInvitation(guestId);
+          renderGuestsTable();
+          renderDashboardStats();
+          renderLiveCheckinTable();
+          alert(`✅ تم توليد رمز QR جديد بنجاح للضيف "${updated.fullName}".\nرمز الدعوة الجديد: ${updated.token}`);
+        } catch (err) {
+          alert('حدث خطأ أثناء إعادة توليد الرمز: ' + (err.message || err));
+        } finally {
+          b.disabled = false;
+        }
       }
     });
   });
@@ -1206,24 +1218,7 @@ function renderHistoryTable() {
 }
 
 function renderAuditTable() {
-  const tbody = document.getElementById('audit-table-body');
-  if (!tbody) return;
-
-  const logs = (localDB.data.auditLogs || []).slice(0, 30);
-  if (logs.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:1.5rem;">لا توجد إجراءات إدارية مسجلة.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = logs.map(l => `
-    <tr>
-      <td style="font-size:0.82rem; color:var(--text-muted);">${new Date(l.timestamp).toLocaleTimeString()}</td>
-      <td style="font-weight:700; color:var(--text-main);">${l.action}</td>
-      <td style="font-size:0.82rem;">${l.targetType}</td>
-      <td style="font-size:0.82rem; color:var(--text-muted);">${l.details}</td>
-      <td style="font-size:0.82rem;">${l.actorUid}</td>
-    </tr>
-  `).join('');
+  // Administrative audit trail removed per user request
 }
 
 // 9. NOTIFICATIONS FEED
@@ -1313,7 +1308,6 @@ function setupRealtimeListeners() {
       renderLiveCheckinTable();
     } else if (currentPanel === 'panel-history') {
       renderHistoryTable();
-      renderAuditTable();
     } else if (currentPanel === 'panel-guests') {
       renderGuestsTable();
     } else if (currentPanel === 'panel-notifications') {

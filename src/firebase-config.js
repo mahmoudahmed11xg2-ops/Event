@@ -88,10 +88,8 @@ class LocalFirestoreEngine {
     if (checkins.length === 0) return;
 
     const byToken = new Map();
-    const byGuestId = new Map();
     checkins.forEach(c => {
       if (c.token) byToken.set(String(c.token).trim().toUpperCase(), c);
-      if (c.guestId) byGuestId.set(String(c.guestId).trim(), c);
     });
 
     Object.values(this.data.guests).forEach(g => {
@@ -99,7 +97,7 @@ class LocalFirestoreEngine {
       if (g.invitationStatus === 'CANCELLED' || g.invitationStatus === 'REVOKED') return;
 
       const cleanToken = g.token ? String(g.token).trim().toUpperCase() : '';
-      const match = (g.id ? byGuestId.get(String(g.id).trim()) : null) || (cleanToken ? byToken.get(cleanToken) : null);
+      const match = cleanToken ? byToken.get(cleanToken) : null;
       if (match) {
         g.invitationStatus = 'CHECKED_IN';
         g.checkedInAt = g.checkedInAt || match.timestamp || new Date().toISOString();

@@ -13,19 +13,16 @@ export function getGuestsForEvent(eventId, { search = '', status = 'ALL' } = {})
 
   const checkins = Object.values(localDB.data.checkins || {}).filter(c => c && c.result === 'SUCCESS');
   const checkedInTokens = new Set(checkins.map(c => c.token ? String(c.token).trim().toUpperCase() : ''));
-  const checkedInGuestIds = new Set(checkins.map(c => c.guestId ? String(c.guestId).trim() : ''));
 
   let list = Object.values(localDB.data.guests).filter(g => g && g.eventId === eventId).map(g => {
     const isCancelled = g.invitationStatus === 'CANCELLED' || g.invitationStatus === 'REVOKED';
     if (isCancelled) return g;
 
     const cleanToken = g.token ? String(g.token).trim().toUpperCase() : '';
-    const hasCheckin = g.invitationStatus === 'CHECKED_IN' || 
-                       checkedInGuestIds.has(String(g.id).trim()) || 
-                       (cleanToken && checkedInTokens.has(cleanToken));
+    const hasCheckin = cleanToken && checkedInTokens.has(cleanToken);
 
     if (hasCheckin) {
-      const match = checkins.find(c => c.guestId === g.id || (cleanToken && c.token && String(c.token).trim().toUpperCase() === cleanToken));
+      const match = checkins.find(c => cleanToken && c.token && String(c.token).trim().toUpperCase() === cleanToken);
       return {
         ...g,
         invitationStatus: 'CHECKED_IN',
@@ -210,6 +207,16 @@ export async function reissueInvitation(id) {
   guest.checkedInAt = null;
   guest.checkedInBy = null;
   guest.updatedAt = new Date().toISOString();
+
+  // Clear previous checkin records for this guest or old token from localDB
+  if (localDB.data.checkins) {
+    Object.keys(localDB.data.checkins).forEach(chkId => {
+      const c = localDB.data.checkins[chkId];
+      if (c && (c.guestId === id || (c.token && c.token.toUpperCase() === String(oldToken).toUpperCase()))) {
+        delete localDB.data.checkins[chkId];
+      }
+    });
+  }
 
   // Cloud Firestore Sync
   const { isReal, db, auth } = getFirebaseInstance();
